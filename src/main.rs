@@ -3,13 +3,22 @@ use ratatui::Terminal;
 use space_inspector::app::{App, AppResult};
 use space_inspector::event::{Event, EventHandler};
 use space_inspector::handler::handle_key_events;
+use space_inspector::init_config::Config;
 use space_inspector::tui::Tui;
+use std::env;
 use std::io;
+use std::process;
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
+    let config = Config::build(env::args()).unwrap_or_else(|err| {
+        eprintln!("Problem parsing arguments: {err}");
+        process::exit(1);
+    });
+
     // Create an application.
-    let mut app = App::new();
+    let mut app = App::new(config);
+    app.init();
 
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(io::stderr());

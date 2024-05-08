@@ -16,11 +16,34 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
         KeyCode::Esc | KeyCode::Char('q') => {
             app.quit();
         }
+        KeyCode::Up | KeyCode::Char('k') => {
+            app.on_cursor_up();
+        }
+        KeyCode::Down | KeyCode::Char('j') => {
+            app.on_cursor_down();
+        }
+        KeyCode::Enter => {
+            app.on_enter();
+        }
+        KeyCode::Backspace => {
+            app.on_backspace();
+        }
         // Exit application on `Ctrl-C`
         KeyCode::Char('c') | KeyCode::Char('C') => {
             if key_event.modifiers == KeyModifiers::CONTROL {
                 app.quit();
+            } else {
+                app.on_toggle_coloring();
             }
+        }
+        KeyCode::Char('s') => {
+            app.on_toggle_sorting();
+        }
+        KeyCode::Char('d') => {
+            app.on_delete();
+        }
+        KeyCode::Char('t') => {
+            app.on_toggle_move_to_trash();
         }
         // Counter handlers
         KeyCode::Right => {
