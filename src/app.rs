@@ -342,3 +342,6 @@ impl App {
         }
     }
 }
+
+#[path = "tests.rs"]
+mod tests;
