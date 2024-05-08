@@ -14,7 +14,7 @@ pub enum SortBy {
     Size,
 }
 
-pub fn path_to_folder(path: &PathBuf) -> Folder {
+pub fn path_to_folder(path: PathBuf) -> Folder {
     let folder_name = path
         .file_name()
         .and_then(|name| name.to_str())

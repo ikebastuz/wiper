@@ -40,7 +40,15 @@ impl Widget for &mut App {
 
         let maybe_folder = self.get_current_folder();
 
-        render_title(header_area, buf, maybe_folder, &self.ui_config);
+        render_title(
+            header_area,
+            buf,
+            maybe_folder,
+            &self.ui_config,
+            self.path_buf_stack.len(),
+            self.receiver_stack.len(),
+            self.time,
+        );
         render_table(rest_area, buf, maybe_folder, &self.ui_config);
         render_footer(footer_area, buf);
     }
@@ -53,9 +61,18 @@ fn value_to_box(value: &bool) -> String {
     }
 }
 
-fn render_title(area: Rect, buf: &mut Buffer, maybe_folder: Option<&Folder>, config: &UIConfig) {
-    let vertical_layout = Layout::horizontal([Constraint::Min(1), Constraint::Min(1)]);
-    let [left, right] = vertical_layout.areas(area);
+fn render_title(
+    area: Rect,
+    buf: &mut Buffer,
+    maybe_folder: Option<&Folder>,
+    config: &UIConfig,
+    task_length: usize,
+    stack_length: usize,
+    time: u128,
+) {
+    let vertical_layout =
+        Layout::horizontal([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)]);
+    let [left, right, debug] = vertical_layout.areas(area);
 
     if let Some(folder) = maybe_folder {
         Paragraph::new(format!(
@@ -77,6 +94,15 @@ fn render_title(area: Rect, buf: &mut Buffer, maybe_folder: Option<&Folder>, con
     Paragraph::new(config_text)
         .right_aligned()
         .render(right, buf);
+
+    // Debug
+    let debug_text = Text::from(format!(
+        "Tasks: {} | Threads: {} | Time: {}",
+        task_length, stack_length, time
+    ));
+    Paragraph::new(debug_text)
+        .right_aligned()
+        .render(debug, buf);
 }
 
 fn render_table(area: Rect, buf: &mut Buffer, maybe_folder: Option<&Folder>, config: &UIConfig) {

@@ -1,4 +1,5 @@
 use opener;
+use std::collections::VecDeque;
 use std::error;
 
 use crate::fs::{delete_file, delete_folder, path_to_folder, Folder, FolderEntryType, SortBy};
@@ -10,6 +11,10 @@ use crate::init_config::Config;
 use crate::ui::UIConfig;
 use std::env;
 
+use tokio::sync::mpsc;
+
+const THREAD_LIMIT: usize = 40;
+
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
@@ -17,21 +22,24 @@ enum DiffKind {
     Subtract,
 }
 
+type FileTreeMap = HashMap<String, Folder>;
+
 /// Application.
 #[derive(Debug)]
 pub struct App {
     /// Current file path buffer
     pub current_path: PathBuf,
     pub ui_config: UIConfig,
-    pub file_tree_map: HashMap<String, Folder>,
+    pub file_tree_map: FileTreeMap,
 
     /// Is the application running?
     pub running: bool,
     /// counter
     pub counter: i8,
 
-    pub time: SystemTime,
-    pub receiver_stack: Vec<Receiver<i8>>,
+    pub time: u128,
+    pub path_buf_stack: VecDeque<PathBuf>,
+    pub receiver_stack: Vec<Receiver<(PathBuf, Folder)>>,
     pub attempts_to_read: u64,
 }
 
@@ -42,7 +50,8 @@ impl Default for App {
             file_tree_map: HashMap::new(),
             running: true,
             counter: 0,
-            time: SystemTime::now(),
+            time: 0,
+            path_buf_stack: VecDeque::new(),
             receiver_stack: vec![],
             attempts_to_read: 0,
             ui_config: UIConfig {
@@ -88,11 +97,77 @@ impl App {
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
         let mut idx = 0;
+
+        let free_threads = THREAD_LIMIT - self.receiver_stack.len();
+
+        if free_threads > 0 {
+            let new_tasks = free_threads.min(self.path_buf_stack.len());
+            for _ in 0..new_tasks {
+                match self.path_buf_stack.pop_front() {
+                    Some(pb) => {
+                        let (sender, receiver) = mpsc::channel(1);
+                        let path_buf_clone = pb.clone();
+
+                        tokio::spawn(async move {
+                            let path_buf = path_buf_clone;
+                            let folder = path_to_folder(path_buf.clone());
+                            let _ = sender.send((path_buf, folder)).await;
+                        });
+
+                        self.receiver_stack.push(receiver);
+                    }
+                    None => {}
+                }
+            }
+        }
         while idx < self.receiver_stack.len() {
             self.attempts_to_read += 1;
             match self.receiver_stack[idx].try_recv() {
                 Ok(result) => {
-                    self.counter += result;
+                    let (path_buf, mut folder) = result;
+                    for child_entry in folder.entries.iter_mut() {
+                        if child_entry.kind == FolderEntryType::Folder {
+                            let mut subfolder_path = path_buf.clone();
+                            subfolder_path.push(&child_entry.title);
+
+                            let subfolder_size = self.process_filepath(&subfolder_path);
+                            child_entry.size = Some(subfolder_size);
+                        }
+                    }
+                    self.file_tree_map
+                        .insert(path_buf.to_string_lossy().to_string(), folder.clone());
+
+                    let mut t = folder.clone();
+                    let mut p = path_buf.clone();
+
+                    while let Some(parent_buf) = p.parent() {
+                        if parent_buf == p {
+                            break;
+                        }
+                        if let Some(parent_folder) =
+                            self.file_tree_map.get_mut(parent_buf.to_str().unwrap())
+                        {
+                            for entry in parent_folder.entries.iter_mut() {
+                                if entry.title == t.title {
+                                    entry.size = Some(t.get_size());
+
+                                    match self.ui_config.sort_by {
+                                        SortBy::Size => {
+                                            parent_folder.sort_by_size();
+                                        }
+                                        SortBy::Title => {
+                                            parent_folder.sort_by_title();
+                                        }
+                                    }
+
+                                    break;
+                                }
+                            }
+                            t = parent_folder.clone();
+                        }
+                        p = parent_buf.to_path_buf();
+                    }
+
                     self.receiver_stack.remove(idx);
                 }
                 Err(_) => {
@@ -100,7 +175,11 @@ impl App {
                 }
             }
         }
-        self.time = SystemTime::now()
+
+        match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+            Ok(duration) => self.time = duration.as_millis(),
+            Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+        };
     }
 
     /// Set running to false to quit the application.
@@ -139,23 +218,20 @@ impl App {
                 return folder.get_size();
             }
 
-            let mut folder = path_to_folder(path_buf);
+            self.path_buf_stack.push_back(path_buf.to_path_buf());
+            //
+            // let (sender, receiver) = mpsc::channel(1);
+            // let path_buf_clone = path_buf.clone();
+            //
+            // tokio::spawn(async move {
+            //     let path_buf = path_buf_clone;
+            //     let folder = path_to_folder(path_buf.clone());
+            //     let _ = sender.send((path_buf, folder)).await;
+            // });
+            //
+            // self.receiver_stack.push(receiver);
 
-            for child_entry in folder.entries.iter_mut() {
-                if child_entry.kind == FolderEntryType::Folder {
-                    let mut subfolder_path = path_buf.clone();
-                    subfolder_path.push(&child_entry.title);
-
-                    let subfolder_size = self.process_filepath(&subfolder_path);
-                    child_entry.size = Some(subfolder_size);
-                }
-            }
-
-            let total_size = folder.get_size();
-
-            self.file_tree_map.insert(path_string, folder);
-
-            return total_size;
+            return 0;
         }
 
         0

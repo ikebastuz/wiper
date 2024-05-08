@@ -46,23 +46,15 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
             app.on_toggle_move_to_trash();
         }
         // Counter handlers
-        KeyCode::Right => {
-            let (sender, receiver) = mpsc::channel(1);
-            tokio::spawn(async move {
-                tokio::time::sleep(Duration::from_secs(1)).await;
-                let _ = sender.send(1).await;
-            });
-
-            app.receiver_stack.push(receiver);
-        }
+        KeyCode::Right => {}
         KeyCode::Left => {
-            let (sender, receiver) = mpsc::channel(1);
-            tokio::spawn(async move {
-                tokio::time::sleep(Duration::from_secs(1)).await;
-                let _ = sender.send(-1).await;
-            });
-
-            app.receiver_stack.push(receiver);
+            // let (sender, receiver) = mpsc::channel(1);
+            // tokio::spawn(async move {
+            //     tokio::time::sleep(Duration::from_secs(1)).await;
+            //     let _ = sender.send(-1).await;
+            // });
+            //
+            // app.receiver_stack.push(receiver);
         }
         _ => {}
     }
