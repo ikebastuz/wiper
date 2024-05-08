@@ -7,13 +7,12 @@ use std::time::SystemTime;
 use std::{collections::HashMap, path::PathBuf};
 use tokio::sync::mpsc::Receiver;
 
-use crate::init_config::Config;
-use crate::ui::UIConfig;
+use crate::config::{InitConfig, UIConfig};
 use std::env;
 
 use tokio::sync::mpsc;
 
-const THREAD_LIMIT: usize = 40;
+const THREAD_LIMIT: usize = 1000;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -67,7 +66,7 @@ impl Default for App {
 
 impl App {
     /// Constructs a new instance of [`App`].
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: InitConfig) -> Self {
         let current_path = match config.file_path {
             Some(path) => {
                 let path_buf = PathBuf::from(&path);
@@ -103,7 +102,7 @@ impl App {
         if free_threads > 0 {
             let new_tasks = free_threads.min(self.path_buf_stack.len());
             for _ in 0..new_tasks {
-                match self.path_buf_stack.pop_front() {
+                match self.path_buf_stack.pop_back() {
                     Some(pb) => {
                         let (sender, receiver) = mpsc::channel(1);
                         let path_buf_clone = pb.clone();

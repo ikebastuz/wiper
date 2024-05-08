@@ -13,7 +13,7 @@ pub mod tui;
 /// Event handler.
 pub mod handler;
 
-/// Initial config.
-pub mod init_config;
+/// Configs
+pub mod config;
 
 pub mod fs;

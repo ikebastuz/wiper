@@ -1,4 +1,5 @@
-use crate::ui::{UIConfig, TEXT_UNKNOWN};
+use crate::config::UIConfig;
+use crate::ui::TEXT_UNKNOWN;
 use std::fs::{read_dir, remove_dir_all, remove_file};
 use std::path::PathBuf;
 use trash;

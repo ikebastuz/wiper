@@ -1,4 +1,5 @@
 use crate::app::App;
+use crate::config::UIConfig;
 use crate::fs::Folder;
 use crate::fs::FolderEntryType;
 use crate::fs::SortBy;
@@ -19,15 +20,6 @@ const TEXT_TITLE: &str = "Space inspector";
 const TEXT_HINT_L1: &str = "↓↑ - move | \"Enter\" - select | \"Backspace\" - parent";
 const TEXT_HINT_L2: &str =
     "\"d-d\" - delete | \"s\" - sort | \"c\" - color | \"t\" - trash | \"q\" - exit";
-
-#[derive(Debug)]
-pub struct UIConfig {
-    pub colored: bool,
-    pub confirming_deletion: bool,
-    pub sort_by: SortBy,
-    pub move_to_trash: bool,
-    pub open_file: bool,
-}
 
 impl Widget for &mut App {
     fn render(self, area: Rect, buf: &mut Buffer) {
