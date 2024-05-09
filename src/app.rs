@@ -39,7 +39,6 @@ pub struct App {
     pub time: u128,
     pub path_buf_stack: VecDeque<PathBuf>,
     pub receiver_stack: Vec<Receiver<(PathBuf, Folder)>>,
-    pub attempts_to_read: u64,
 }
 
 impl Default for App {
@@ -52,7 +51,6 @@ impl Default for App {
             time: 0,
             path_buf_stack: VecDeque::new(),
             receiver_stack: vec![],
-            attempts_to_read: 0,
             ui_config: UIConfig {
                 colored: false,
                 confirming_deletion: false,
@@ -89,6 +87,12 @@ impl App {
         app
     }
 
+    pub fn wait_for_threads(&mut self) {
+        while self.receiver_stack.len() > 0 || self.path_buf_stack.len() > 0 {
+            self.tick();
+        }
+    }
+
     pub fn init(&mut self) {
         self.process_filepath(&self.current_path.clone());
     }
@@ -102,7 +106,7 @@ impl App {
         if free_threads > 0 {
             let new_tasks = free_threads.min(self.path_buf_stack.len());
             for _ in 0..new_tasks {
-                match self.path_buf_stack.pop_back() {
+                match self.path_buf_stack.pop_front() {
                     Some(pb) => {
                         let (sender, receiver) = mpsc::channel(1);
                         let path_buf_clone = pb.clone();
@@ -120,7 +124,6 @@ impl App {
             }
         }
         while idx < self.receiver_stack.len() {
-            self.attempts_to_read += 1;
             match self.receiver_stack[idx].try_recv() {
                 Ok(result) => {
                     let (path_buf, mut folder) = result;
@@ -166,13 +169,16 @@ impl App {
                                 }
                             }
                             t = parent_folder.clone();
+                            p = parent_buf.to_path_buf();
+                        } else {
+                            break;
                         }
-                        p = parent_buf.to_path_buf();
                     }
 
+                    // TODO: probably unsafe
                     self.receiver_stack.remove(idx);
                 }
-                Err(_) => {
+                Err(err) => {
                     idx += 1;
                 }
             }
