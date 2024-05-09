@@ -124,18 +124,21 @@ impl App {
             match self.receiver_stack[idx].try_recv() {
                 Ok(result) => {
                     let (path_buf, mut folder) = result;
+                    // Push child folders to stack
                     for child_entry in folder.entries.iter_mut() {
                         if child_entry.kind == FolderEntryType::Folder {
                             let mut subfolder_path = path_buf.clone();
                             subfolder_path.push(&child_entry.title);
+                            child_entry.size = self.get_entry_size(&subfolder_path);
 
-                            let subfolder_size = self.process_filepath(&subfolder_path);
-                            child_entry.size = Some(subfolder_size);
+                            self.process_filepath(&subfolder_path);
                         }
                     }
-                    self.file_tree_map
-                        .insert(path_buf.to_string_lossy().to_string(), folder.clone());
 
+                    self.file_tree_map
+                        .insert(path_buf_to_string(&path_buf), folder.clone());
+
+                    // Update parent folder size
                     let mut t = folder.clone();
                     let mut p = path_buf.clone();
 
@@ -186,18 +189,6 @@ impl App {
         self.running = false;
     }
 
-    pub fn increment_counter(&mut self) {
-        if let Some(res) = self.counter.checked_add(1) {
-            self.counter = res;
-        }
-    }
-
-    pub fn decrement_counter(&mut self) {
-        if let Some(res) = self.counter.checked_sub(1) {
-            self.counter = res;
-        }
-    }
-
     fn get_current_path_string(&self) -> String {
         self.current_path.to_string_lossy().to_string()
     }
@@ -206,34 +197,14 @@ impl App {
         self.file_tree_map.get(&self.get_current_path_string())
     }
 
-    fn process_filepath(&mut self, path_buf: &PathBuf) -> u64 {
+    fn process_filepath(&mut self, path_buf: &PathBuf) {
         if !self
             .file_tree_map
             .contains_key(&path_buf.to_string_lossy().to_string())
         {
-            let path_string = path_buf.to_string_lossy().into_owned();
-
-            if let Some(folder) = self.file_tree_map.get(&path_string) {
-                return folder.get_size();
-            }
-
-            self.path_buf_stack.push_back(path_buf.to_path_buf());
-            //
-            // let (sender, receiver) = mpsc::channel(1);
-            // let path_buf_clone = path_buf.clone();
-            //
-            // tokio::spawn(async move {
-            //     let path_buf = path_buf_clone;
-            //     let folder = path_to_folder(path_buf.clone());
-            //     let _ = sender.send((path_buf, folder)).await;
-            // });
-            //
-            // self.receiver_stack.push(receiver);
-
-            return 0;
+            self.path_buf_stack
+                .push_back(path_buf.to_path_buf().clone());
         }
-
-        0
     }
 
     pub fn on_toggle_coloring(&mut self) {
@@ -416,6 +387,18 @@ impl App {
             }
         }
     }
+
+    fn get_entry_size(&self, path: &PathBuf) -> Option<u64> {
+        if let Some(entry) = self.file_tree_map.get(&path_buf_to_string(&path.clone())) {
+            Some(entry.get_size())
+        } else {
+            None
+        }
+    }
+}
+
+fn path_buf_to_string(path_buf: &PathBuf) -> String {
+    path_buf.to_string_lossy().to_string()
 }
 
 #[path = "tests.rs"]
