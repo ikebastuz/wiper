@@ -6,8 +6,10 @@ use trash;
 
 mod folder;
 mod folder_entry;
+mod utils;
 pub use folder::Folder;
 pub use folder_entry::{FolderEntry, FolderEntryType};
+pub use utils::path_buf_to_string;
 
 #[derive(Debug)]
 pub enum SortBy {

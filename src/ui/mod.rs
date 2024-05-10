@@ -22,8 +22,8 @@ impl Widget for &mut App {
         let maybe_folder = self.get_current_folder();
 
         let debug = DebugData {
-            path_stack: self.path_buf_stack.len(),
-            threads: self.receiver_stack.len(),
+            path_stack: self.task_manager.path_buf_stack.len(),
+            threads: self.task_manager.receiver_stack.len(),
             time: self.time,
         };
 

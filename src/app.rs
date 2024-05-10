@@ -1,19 +1,15 @@
 use opener;
-use std::collections::VecDeque;
 use std::error;
 
-use crate::fs::{delete_file, delete_folder, path_to_folder, Folder, FolderEntryType, SortBy};
+use crate::fs::{
+    delete_file, delete_folder, path_buf_to_string, path_to_folder, Folder, FolderEntryType, SortBy,
+};
+use crate::task_manager::TaskManager;
 use std::time::SystemTime;
 use std::{collections::HashMap, path::PathBuf};
-use tokio::sync::mpsc::Receiver;
 
 use crate::config::{InitConfig, UIConfig};
 use std::env;
-
-use tokio::sync::mpsc;
-
-// TODO: Explore avoiding hardcoding amount of worker threads
-const THREAD_LIMIT: usize = 1000;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -22,7 +18,7 @@ enum DiffKind {
     Subtract,
 }
 
-type FileTreeMap = HashMap<String, Folder>;
+pub type FileTreeMap = HashMap<String, Folder>;
 
 /// Application.
 #[derive(Debug)]
@@ -37,10 +33,7 @@ pub struct App {
     pub running: bool,
     /// Current timestamp (for debugging) - remove later
     pub time: u128,
-    /// Stack of file paths to process
-    pub path_buf_stack: VecDeque<PathBuf>,
-    /// Stack of receivers to accept processed path
-    pub receiver_stack: Vec<Receiver<(PathBuf, Folder)>>,
+    pub task_manager: TaskManager,
 }
 
 impl Default for App {
@@ -50,8 +43,6 @@ impl Default for App {
             file_tree_map: HashMap::new(),
             running: true,
             time: 0,
-            path_buf_stack: VecDeque::new(),
-            receiver_stack: vec![],
             ui_config: UIConfig {
                 colored: true,
                 confirming_deletion: false,
@@ -60,6 +51,7 @@ impl Default for App {
                 open_file: true,
                 debug_enabled: false,
             },
+            task_manager: TaskManager::new(),
         }
     }
 }
@@ -89,14 +81,9 @@ impl App {
         app
     }
 
-    pub fn wait_for_threads(&mut self) {
-        while self.receiver_stack.len() > 0 || self.path_buf_stack.len() > 0 {
-            self.tick();
-        }
-    }
-
     pub fn init(&mut self) {
-        self.process_filepath(&self.current_path.clone());
+        self.task_manager
+            .maybe_add_task(&self.file_tree_map, &self.current_path.clone());
     }
 
     // TODO: finish impl same as after receiving from worker thread (propagate up)
@@ -110,9 +97,10 @@ impl App {
                 if child_entry.kind == FolderEntryType::Folder {
                     let mut subfolder_path = path_buf.clone();
                     subfolder_path.push(&child_entry.title);
-                    child_entry.size = self.get_entry_size(&subfolder_path);
+                    child_entry.size = get_entry_size(&self.file_tree_map, &subfolder_path);
 
-                    self.process_filepath(&subfolder_path);
+                    self.task_manager
+                        .maybe_add_task(&self.file_tree_map, &subfolder_path);
                 }
             }
 
@@ -123,90 +111,9 @@ impl App {
 
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
-        let free_threads = THREAD_LIMIT - self.receiver_stack.len();
-
-        if free_threads > 0 {
-            let new_tasks = free_threads.min(self.path_buf_stack.len());
-            for _ in 0..new_tasks {
-                match self.path_buf_stack.pop_front() {
-                    Some(pb) => {
-                        let (sender, receiver) = mpsc::channel(1);
-                        let path_buf_clone = pb.clone();
-
-                        tokio::spawn(async move {
-                            let path_buf = path_buf_clone;
-                            let folder = path_to_folder(path_buf.clone());
-                            let _ = sender.send((path_buf, folder)).await;
-                        });
-
-                        self.receiver_stack.push(receiver);
-                    }
-                    None => {}
-                }
-            }
-        }
-
-        let mut idx = 0;
-        while idx < self.receiver_stack.len() {
-            match self.receiver_stack[idx].try_recv() {
-                Ok(result) => {
-                    let (path_buf, mut folder) = result;
-                    // Push child folders to stack
-                    for child_entry in folder.entries.iter_mut() {
-                        if child_entry.kind == FolderEntryType::Folder {
-                            let mut subfolder_path = path_buf.clone();
-                            subfolder_path.push(&child_entry.title);
-                            child_entry.size = self.get_entry_size(&subfolder_path);
-
-                            self.process_filepath(&subfolder_path);
-                        }
-                    }
-
-                    self.file_tree_map
-                        .insert(path_buf_to_string(&path_buf), folder.clone());
-
-                    // Update parent folder size
-                    let mut t = folder.clone();
-                    let mut p = path_buf.clone();
-
-                    while let Some(parent_buf) = p.parent() {
-                        if parent_buf == p {
-                            break;
-                        }
-                        if let Some(parent_folder) =
-                            self.file_tree_map.get_mut(parent_buf.to_str().unwrap())
-                        {
-                            for entry in parent_folder.entries.iter_mut() {
-                                if entry.title == t.title {
-                                    entry.size = Some(t.get_size());
-
-                                    match self.ui_config.sort_by {
-                                        SortBy::Size => {
-                                            parent_folder.sort_by_size();
-                                        }
-                                        SortBy::Title => {
-                                            parent_folder.sort_by_title();
-                                        }
-                                    }
-
-                                    break;
-                                }
-                            }
-                            t = parent_folder.clone();
-                            p = parent_buf.to_path_buf();
-                        } else {
-                            break;
-                        }
-                    }
-
-                    // TODO: probably unsafe
-                    self.receiver_stack.remove(idx);
-                }
-                Err(_) => {
-                    idx += 1;
-                }
-            }
-        }
+        self.task_manager.process_next_batch();
+        self.task_manager
+            .read_receiver_stack(&mut self.file_tree_map);
 
         match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
             Ok(duration) => self.time = duration.as_millis(),
@@ -225,16 +132,6 @@ impl App {
 
     pub fn get_current_folder(&self) -> Option<&Folder> {
         self.file_tree_map.get(&self.get_current_path_string())
-    }
-
-    fn process_filepath(&mut self, path_buf: &PathBuf) {
-        if !self
-            .file_tree_map
-            .contains_key(&path_buf.to_string_lossy().to_string())
-        {
-            self.path_buf_stack
-                .push_back(path_buf.to_path_buf().clone());
-        }
     }
 
     pub fn on_toggle_coloring(&mut self) {
@@ -312,7 +209,8 @@ impl App {
         let mut new_path = PathBuf::from(&self.current_path);
         new_path.push(title);
         self.current_path = new_path;
-        self.process_filepath(&PathBuf::from(&self.current_path));
+        self.task_manager
+            .maybe_add_task(&self.file_tree_map, &self.current_path);
         self.sort_current_folder();
     }
 
@@ -421,21 +319,17 @@ impl App {
         }
     }
 
-    fn get_entry_size(&self, path: &PathBuf) -> Option<u64> {
-        if let Some(entry) = self.file_tree_map.get(&path_buf_to_string(&path.clone())) {
-            Some(entry.get_size())
-        } else {
-            None
-        }
-    }
-
     pub fn toggle_debug(&mut self) {
         self.ui_config.debug_enabled = !self.ui_config.debug_enabled;
     }
 }
 
-fn path_buf_to_string(path_buf: &PathBuf) -> String {
-    path_buf.to_string_lossy().to_string()
+pub fn get_entry_size(file_tree_map: &FileTreeMap, path: &PathBuf) -> Option<u64> {
+    if let Some(entry) = file_tree_map.get(&path_buf_to_string(&path.clone())) {
+        Some(entry.get_size())
+    } else {
+        None
+    }
 }
 
 #[path = "tests/tests.rs"]

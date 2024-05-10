@@ -15,3 +15,6 @@ pub mod config;
 
 /// File systems utils
 pub mod fs;
+
+/// Task queue manager
+pub mod task_manager;

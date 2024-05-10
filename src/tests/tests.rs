@@ -28,7 +28,7 @@ mod tests {
     }
 
     async fn await_for_tasks(app: &mut App) {
-        while !app.path_buf_stack.is_empty() || !app.receiver_stack.is_empty() {
+        while !app.task_manager.is_done() {
             app.tick();
 
             tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
