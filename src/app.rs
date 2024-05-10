@@ -12,6 +12,7 @@ use std::env;
 
 use tokio::sync::mpsc;
 
+// TODO: Explore avoiding hardcoding amount of worker threads
 const THREAD_LIMIT: usize = 1000;
 
 /// Application result type.
@@ -57,6 +58,7 @@ impl Default for App {
                 sort_by: SortBy::Title,
                 move_to_trash: true,
                 open_file: true,
+                debug_enabled: false,
             },
         }
     }

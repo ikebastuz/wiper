@@ -21,3 +21,9 @@ cargo test -- --test-threads=1 --nocapture
 ```bash
 RUSTFLAGS="-Z threads=8" cargo +nightly build --release
 ```
+
+## Install from homebrew
+```bash
+brew tap ikebastuz/wiper
+brew install wiper
+```

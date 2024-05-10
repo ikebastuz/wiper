@@ -21,4 +21,5 @@ pub struct UIConfig {
     pub sort_by: SortBy,
     pub move_to_trash: bool,
     pub open_file: bool,
+    pub debug_enabled: bool,
 }

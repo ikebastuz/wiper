@@ -1,4 +1,4 @@
-use crate::ui::TEXT_PARENT_DIR;
+use crate::ui::constants::TEXT_PARENT_DIR;
 
 use crate::fs::folder_entry::{FolderEntry, FolderEntryType};
 use std::cmp::Ordering;
