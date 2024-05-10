@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    const TEST_FILE_PATH_VIEW: &str = "./tests/view";
-    const TEST_FILE_PATH_EDIT: &str = "./tests/edit";
+    const TEST_FILE_PATH_VIEW: &str = "./src/tests/test_files/view";
+    const TEST_FILE_PATH_EDIT: &str = "./src/tests/test_files/edit";
     use crate::app::App;
     use crate::config::InitConfig;
     use crate::fs::{FolderEntry, FolderEntryType};
