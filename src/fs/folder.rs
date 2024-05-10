@@ -35,9 +35,7 @@ impl Folder {
 
     pub fn remove_selected(&mut self) {
         self.entries.remove(self.cursor_index);
-        if self.cursor_index > self.entries.len() - 1 {
-            self.cursor_index = self.entries.len() - 1
-        }
+        self.cursor_index = self.cursor_index.min(self.entries.len() - 1);
     }
 
     pub fn get_selected_entry(&self) -> &FolderEntry {

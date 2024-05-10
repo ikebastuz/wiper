@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::app::App;
 use crate::config::UIConfig;
 use crate::fs::Folder;
@@ -21,6 +23,13 @@ const TEXT_HINT_L1: &str = "↓↑ - move | \"Enter\" - select | \"Backspace\" -
 const TEXT_HINT_L2: &str =
     "\"d-d\" - delete | \"s\" - sort | \"c\" - color | \"t\" - trash | \"q\" - exit";
 
+#[derive(Debug)]
+struct DebugData {
+    path_stack: usize,
+    threads: usize,
+    time: u128,
+}
+
 impl Widget for &mut App {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let vertical = Layout::vertical([
@@ -32,15 +41,13 @@ impl Widget for &mut App {
 
         let maybe_folder = self.get_current_folder();
 
-        render_title(
-            header_area,
-            buf,
-            maybe_folder,
-            &self.ui_config,
-            self.path_buf_stack.len(),
-            self.receiver_stack.len(),
-            self.time,
-        );
+        let debug = DebugData {
+            path_stack: self.path_buf_stack.len(),
+            threads: self.receiver_stack.len(),
+            time: self.time,
+        };
+
+        render_title(header_area, buf, maybe_folder, &self.ui_config, &debug);
         render_table(rest_area, buf, maybe_folder, &self.ui_config);
         render_footer(footer_area, buf);
     }
@@ -58,13 +65,13 @@ fn render_title(
     buf: &mut Buffer,
     maybe_folder: Option<&Folder>,
     config: &UIConfig,
-    task_length: usize,
-    stack_length: usize,
-    time: u128,
+    debug_data: &DebugData,
 ) {
-    let vertical_layout =
-        Layout::horizontal([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)]);
-    let [left, right, debug] = vertical_layout.areas(area);
+    let horizontal_layout = Layout::vertical([Constraint::Min(1), Constraint::Min(1)]);
+    let [top_row, debug_row] = horizontal_layout.areas(area);
+
+    let vertical_layout = Layout::horizontal([Constraint::Min(1), Constraint::Min(1)]);
+    let [left_col, right_col] = vertical_layout.areas(top_row);
 
     if let Some(folder) = maybe_folder {
         Paragraph::new(format!(
@@ -74,8 +81,8 @@ fn render_title(
             format_file_size(folder.get_size()),
         ))
         .bold()
-        .centered()
-        .render(left, buf);
+        .left_aligned()
+        .render(left_col, buf);
     }
 
     let config_text = Text::from(format!(
@@ -85,16 +92,16 @@ fn render_title(
     ));
     Paragraph::new(config_text)
         .right_aligned()
-        .render(right, buf);
+        .render(right_col, buf);
 
     // Debug
     let debug_text = Text::from(format!(
-        "Tasks: {} | Threads: {} | Time: {}",
-        task_length, stack_length, time
+        "Debug | Stack -> {} <-> {} <- Threads | Time {}",
+        debug_data.path_stack, debug_data.threads, debug_data.time
     ));
     Paragraph::new(debug_text)
-        .right_aligned()
-        .render(debug, buf);
+        .left_aligned()
+        .render(debug_row, buf);
 }
 
 fn render_table(area: Rect, buf: &mut Buffer, maybe_folder: Option<&Folder>, config: &UIConfig) {

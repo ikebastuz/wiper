@@ -28,16 +28,17 @@ type FileTreeMap = HashMap<String, Folder>;
 pub struct App {
     /// Current file path buffer
     pub current_path: PathBuf,
+    /// Config to render UI
     pub ui_config: UIConfig,
+    /// Map for all folder file paths
     pub file_tree_map: FileTreeMap,
-
     /// Is the application running?
     pub running: bool,
-    /// counter
-    pub counter: i8,
-
+    /// Current timestamp (for debugging) - remove later
     pub time: u128,
+    /// Stack of file paths to process
     pub path_buf_stack: VecDeque<PathBuf>,
+    /// Stack of receivers to accept processed path
     pub receiver_stack: Vec<Receiver<(PathBuf, Folder)>>,
 }
 
@@ -47,12 +48,11 @@ impl Default for App {
             current_path: PathBuf::from("."),
             file_tree_map: HashMap::new(),
             running: true,
-            counter: 0,
             time: 0,
             path_buf_stack: VecDeque::new(),
             receiver_stack: vec![],
             ui_config: UIConfig {
-                colored: false,
+                colored: true,
                 confirming_deletion: false,
                 sort_by: SortBy::Title,
                 move_to_trash: true,
@@ -99,8 +99,6 @@ impl App {
 
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
-        let mut idx = 0;
-
         let free_threads = THREAD_LIMIT - self.receiver_stack.len();
 
         if free_threads > 0 {
@@ -123,6 +121,8 @@ impl App {
                 }
             }
         }
+
+        let mut idx = 0;
         while idx < self.receiver_stack.len() {
             match self.receiver_stack[idx].try_recv() {
                 Ok(result) => {
@@ -156,14 +156,14 @@ impl App {
                                 if entry.title == t.title {
                                     entry.size = Some(t.get_size());
 
-                                    match self.ui_config.sort_by {
-                                        SortBy::Size => {
-                                            parent_folder.sort_by_size();
-                                        }
-                                        SortBy::Title => {
-                                            parent_folder.sort_by_title();
-                                        }
-                                    }
+                                    // match self.ui_config.sort_by {
+                                    //     SortBy::Size => {
+                                    //         parent_folder.sort_by_size();
+                                    //     }
+                                    //     SortBy::Title => {
+                                    //         parent_folder.sort_by_title();
+                                    //     }
+                                    // }
 
                                     break;
                                 }
@@ -178,7 +178,7 @@ impl App {
                     // TODO: probably unsafe
                     self.receiver_stack.remove(idx);
                 }
-                Err(err) => {
+                Err(_) => {
                     idx += 1;
                 }
             }
@@ -252,7 +252,7 @@ impl App {
         self.ui_config.move_to_trash = !self.ui_config.move_to_trash;
     }
 
-    fn get_current_folder_v2(&mut self) -> Option<&mut Folder> {
+    pub fn get_current_folder_v2(&mut self) -> Option<&mut Folder> {
         self.file_tree_map.get_mut(&self.get_current_path_string())
     }
 
@@ -375,6 +375,8 @@ impl App {
         entry_diff: u64,
         diff_kind: DiffKind,
     ) {
+        // TODO: check if after changing parent size
+        // we need to re-sort folder
         let mut parent_path = to_delete_path.clone();
         while let Some(parent) = parent_path.parent() {
             if let Some(parent_folder) = self.file_tree_map.get_mut(parent.to_str().unwrap()) {
