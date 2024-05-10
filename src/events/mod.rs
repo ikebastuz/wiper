@@ -1,3 +1,6 @@
+mod handler;
+
+pub use handler::handle_key_events;
 use std::time::Duration;
 
 use crossterm::event::{Event as CrosstermEvent, KeyEvent, MouseEvent};

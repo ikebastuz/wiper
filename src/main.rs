@@ -5,8 +5,7 @@ use std::io;
 use std::process;
 use wiper::app::{App, AppResult};
 use wiper::config::InitConfig;
-use wiper::event::{Event, EventHandler};
-use wiper::handler::handle_key_events;
+use wiper::events::{handle_key_events, Event, EventHandler};
 use wiper::tui::Tui;
 
 #[tokio::main]
