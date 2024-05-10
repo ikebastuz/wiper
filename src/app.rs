@@ -99,6 +99,28 @@ impl App {
         self.process_filepath(&self.current_path.clone());
     }
 
+    // TODO: finish impl same as after receiving from worker thread (propagate up)
+    fn process_filepath_sync(&mut self, path_buf: PathBuf) {
+        if !self
+            .file_tree_map
+            .contains_key(&path_buf.to_string_lossy().to_string())
+        {
+            let mut folder = path_to_folder(path_buf.clone());
+            for child_entry in folder.entries.iter_mut() {
+                if child_entry.kind == FolderEntryType::Folder {
+                    let mut subfolder_path = path_buf.clone();
+                    subfolder_path.push(&child_entry.title);
+                    child_entry.size = self.get_entry_size(&subfolder_path);
+
+                    self.process_filepath(&subfolder_path);
+                }
+            }
+
+            self.file_tree_map
+                .insert(path_buf_to_string(&path_buf), folder.clone());
+        }
+    }
+
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
         let free_threads = THREAD_LIMIT - self.receiver_stack.len();
@@ -158,14 +180,14 @@ impl App {
                                 if entry.title == t.title {
                                     entry.size = Some(t.get_size());
 
-                                    // match self.ui_config.sort_by {
-                                    //     SortBy::Size => {
-                                    //         parent_folder.sort_by_size();
-                                    //     }
-                                    //     SortBy::Title => {
-                                    //         parent_folder.sort_by_title();
-                                    //     }
-                                    // }
+                                    match self.ui_config.sort_by {
+                                        SortBy::Size => {
+                                            parent_folder.sort_by_size();
+                                        }
+                                        SortBy::Title => {
+                                            parent_folder.sort_by_title();
+                                        }
+                                    }
 
                                     break;
                                 }
@@ -280,11 +302,12 @@ impl App {
         if let Some(parent) = PathBuf::from(&self.current_path).parent() {
             let parent_buf = parent.to_path_buf();
             self.current_path = parent_buf.clone();
-            self.process_filepath(&parent_buf);
+            self.process_filepath_sync(parent_buf.clone());
             self.sort_current_folder();
         }
     }
 
+    // TODO: process first entry sync (same as parent)
     fn navigate_to_child(&mut self, title: &String) {
         let mut new_path = PathBuf::from(&self.current_path);
         new_path.push(title);
