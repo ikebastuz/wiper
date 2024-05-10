@@ -31,7 +31,11 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
             app.on_toggle_sorting();
         }
         KeyCode::Char('d') => {
-            app.on_delete();
+            if key_event.modifiers == KeyModifiers::CONTROL {
+                app.toggle_debug();
+            } else {
+                app.on_delete();
+            }
         }
         KeyCode::Char('t') => {
             app.on_toggle_move_to_trash();

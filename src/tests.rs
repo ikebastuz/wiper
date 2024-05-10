@@ -31,23 +31,9 @@ mod tests {
         while !app.path_buf_stack.is_empty() || !app.receiver_stack.is_empty() {
             app.tick();
 
-            tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
         }
     }
-
-    // fn assert_item_at_index_is(app: &Mutex<App>, index: usize, kind: FolderEntryType) {
-    //     assert_eq!(
-    //         app.lock()
-    //             .unwrap()
-    //             .get_current_folder()
-    //             .unwrap()
-    //             .entries
-    //             .get(index)
-    //             .unwrap()
-    //             .kind,
-    //         kind
-    //     );
-    // }
 
     fn assert_item_at_index_is(app: &App, index: usize, kind: FolderEntryType) {
         assert_eq!(

@@ -428,6 +428,10 @@ impl App {
             None
         }
     }
+
+    pub fn toggle_debug(&mut self) {
+        self.ui_config.debug_enabled = !self.ui_config.debug_enabled;
+    }
 }
 
 fn path_buf_to_string(path_buf: &PathBuf) -> String {

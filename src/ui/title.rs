@@ -19,14 +19,18 @@ pub fn render_title(
     area: Rect,
     buf: &mut Buffer,
     maybe_folder: Option<&Folder>,
-    config: &UIConfig,
+    ui_config: &UIConfig,
     debug_data: &DebugData,
 ) {
-    let horizontal_layout = Layout::vertical([Constraint::Min(1), Constraint::Min(1)]);
-    let [top_row, debug_row] = horizontal_layout.areas(area);
+    let debug_row_size = match ui_config.debug_enabled {
+        true => Constraint::Min(1),
+        false => Constraint::Max(0),
+    };
+    let vertical_layout = Layout::vertical([Constraint::Min(1), debug_row_size]);
+    let [top_row, debug_row] = vertical_layout.areas(area);
 
-    let vertical_layout = Layout::horizontal([Constraint::Min(1), Constraint::Min(1)]);
-    let [left_col, right_col] = vertical_layout.areas(top_row);
+    let horizontal_layout = Layout::horizontal([Constraint::Min(1), Constraint::Min(1)]);
+    let [left_col, right_col] = horizontal_layout.areas(top_row);
 
     if let Some(folder) = maybe_folder {
         Paragraph::new(format!(
@@ -42,8 +46,8 @@ pub fn render_title(
 
     let config_text = Text::from(format!(
         "Colored: {} | Trash: {}",
-        value_to_box(&config.colored),
-        value_to_box(&config.move_to_trash)
+        value_to_box(&ui_config.colored),
+        value_to_box(&ui_config.move_to_trash)
     ));
     Paragraph::new(config_text)
         .right_aligned()
