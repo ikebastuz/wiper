@@ -1,5 +1,5 @@
 [package]
-name = "space_inspector"
+name = "wiper"
 version = "0.1.0"
 authors = ["Alexandr Kobrin <alexk@canva.com>"]
 license = "MIT"

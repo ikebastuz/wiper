@@ -1,13 +1,13 @@
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
-use space_inspector::app::{App, AppResult};
-use space_inspector::config::InitConfig;
-use space_inspector::event::{Event, EventHandler};
-use space_inspector::handler::handle_key_events;
-use space_inspector::tui::Tui;
 use std::env;
 use std::io;
 use std::process;
+use wiper::app::{App, AppResult};
+use wiper::config::InitConfig;
+use wiper::event::{Event, EventHandler};
+use wiper::handler::handle_key_events;
+use wiper::tui::Tui;
 
 #[tokio::main]
 async fn main() -> AppResult<()> {

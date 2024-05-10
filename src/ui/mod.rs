@@ -18,7 +18,7 @@ const TABLE_SPACE_WIDTH: usize = 40;
 // Texts
 pub const TEXT_UNKNOWN: &str = "N/A";
 pub const TEXT_PARENT_DIR: &str = "..";
-const TEXT_TITLE: &str = "Space inspector";
+const TEXT_TITLE: &str = "Wiper";
 const TEXT_HINT_L1: &str = "↓↑ - move | \"Enter\" - select | \"Backspace\" - parent";
 const TEXT_HINT_L2: &str =
     "\"d-d\" - delete | \"s\" - sort | \"c\" - color | \"t\" - trash | \"q\" - exit";
