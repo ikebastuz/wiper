@@ -438,5 +438,5 @@ fn path_buf_to_string(path_buf: &PathBuf) -> String {
     path_buf.to_string_lossy().to_string()
 }
 
-#[path = "tests.rs"]
+#[path = "tests/tests.rs"]
 mod tests;
