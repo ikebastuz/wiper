@@ -33,6 +33,7 @@ mod tests {
 
             tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
         }
+        app.pre_render();
     }
 
     fn assert_item_at_index_is(app: &App, index: usize, kind: FolderEntryType) {
@@ -139,6 +140,7 @@ mod tests {
             await_for_tasks(&mut app).await;
 
             app.on_toggle_sorting();
+            await_for_tasks(&mut app).await;
 
             assert_root_view_folder_sorted_by_size(&app);
         }
@@ -149,6 +151,8 @@ mod tests {
             await_for_tasks(&mut app).await;
 
             app.on_toggle_sorting();
+            await_for_tasks(&mut app).await;
+
             app.on_cursor_down();
             app.on_enter();
 
@@ -168,6 +172,7 @@ mod tests {
             app.on_cursor_down();
             app.on_enter();
             app.on_toggle_sorting();
+            await_for_tasks(&mut app).await;
             app.on_enter();
 
             await_for_tasks(&mut app).await;

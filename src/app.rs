@@ -147,23 +147,30 @@ impl App {
                 self.ui_config.sort_by = SortBy::Title;
             }
         }
-
-        self.sort_current_folder();
     }
 
+    // TODO: refactor
     fn sort_current_folder(&mut self) {
-        if let Some(mut folder) = self.get_current_folder().cloned() {
-            match self.ui_config.sort_by {
-                SortBy::Size => {
-                    folder.sort_by_size();
-                }
-                SortBy::Title => {
-                    folder.sort_by_title();
+        let app_sort_by = self.ui_config.sort_by.clone();
+        if let Some(folder) = self.get_current_folder_v2() {
+            match &folder.sorted_by {
+                None => match app_sort_by {
+                    SortBy::Title => folder.sort_by_title(),
+                    SortBy::Size => folder.sort_by_size(),
+                },
+                Some(folder_sort_by) => {
+                    if folder_sort_by.clone() != app_sort_by {
+                        match app_sort_by {
+                            SortBy::Title => folder.sort_by_title(),
+                            SortBy::Size => folder.sort_by_size(),
+                        };
+                    };
                 }
             }
-            self.set_current_folder(folder);
+            folder.sorted_by = Some(app_sort_by);
         }
     }
+
     fn set_current_folder(&mut self, folder: Folder) {
         self.file_tree_map
             .insert(self.get_current_path_string(), folder);
@@ -200,7 +207,6 @@ impl App {
             let parent_buf = parent.to_path_buf();
             self.current_path = parent_buf.clone();
             self.process_filepath_sync(parent_buf.clone());
-            self.sort_current_folder();
         }
     }
 
@@ -211,7 +217,6 @@ impl App {
         self.current_path = new_path;
         self.task_manager
             .maybe_add_task(&self.file_tree_map, &self.current_path);
-        self.sort_current_folder();
     }
 
     pub fn on_backspace(&mut self) {
@@ -312,6 +317,7 @@ impl App {
                         }
                     }
                 }
+                parent_folder.sorted_by = None;
                 parent_path = parent.to_path_buf();
             } else {
                 break;
@@ -321,6 +327,10 @@ impl App {
 
     pub fn toggle_debug(&mut self) {
         self.ui_config.debug_enabled = !self.ui_config.debug_enabled;
+    }
+
+    pub fn pre_render(&mut self) {
+        self.sort_current_folder();
     }
 }
 

@@ -11,12 +11,12 @@ pub use folder::Folder;
 pub use folder_entry::{FolderEntry, FolderEntryType};
 pub use utils::path_buf_to_string;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum SortBy {
     Title,
     Size,
 }
-
+/// Returns new unsorted folder
 pub fn path_to_folder(path: PathBuf) -> Folder {
     let folder_name = path
         .file_name()
@@ -47,7 +47,6 @@ pub fn path_to_folder(path: PathBuf) -> Folder {
             }
         }
     }
-    folder.sort_by_title();
 
     folder
 }

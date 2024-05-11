@@ -12,6 +12,8 @@ pub use title::{render_title, DebugData};
 
 impl Widget for &mut App {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        self.pre_render();
+
         let vertical = Layout::vertical([
             Constraint::Length(2),
             Constraint::Fill(1),

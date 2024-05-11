@@ -65,6 +65,7 @@ impl TaskManager {
                             let mut subfolder_path = path_buf.clone();
                             subfolder_path.push(&child_entry.title);
                             child_entry.size = get_entry_size(file_tree_map, &subfolder_path);
+                            folder.sorted_by = None;
 
                             self.maybe_add_task(file_tree_map, &subfolder_path);
                         }
@@ -85,6 +86,7 @@ impl TaskManager {
                             for entry in parent_folder.entries.iter_mut() {
                                 if entry.title == t.title {
                                     entry.size = Some(t.get_size());
+                                    parent_folder.sorted_by = None;
 
                                     break;
                                 }

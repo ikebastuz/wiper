@@ -14,6 +14,7 @@
 - [ ] - Colored first letters (keybindings)
 - [ ] - Better list scrolling
 - [ ] - Maybe auto-center cursor
+- [ ] - Refactor unit tests for easier state awaiting
 
 #### Performance
 - [ ] - Indexing / caching / refreshing

@@ -3,10 +3,13 @@ use crate::ui::constants::TEXT_PARENT_DIR;
 use crate::fs::folder_entry::{FolderEntry, FolderEntryType};
 use std::cmp::Ordering;
 
+use super::SortBy;
+
 #[derive(Debug, Clone)]
 pub struct Folder {
     pub title: String,
     pub cursor_index: usize,
+    pub sorted_by: Option<SortBy>,
     pub entries: Vec<FolderEntry>,
 }
 
@@ -15,6 +18,7 @@ impl Folder {
         Folder {
             title,
             cursor_index: 0,
+            sorted_by: None,
             entries: vec![FolderEntry {
                 kind: FolderEntryType::Parent,
                 title: String::from(TEXT_PARENT_DIR),
