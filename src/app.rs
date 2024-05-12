@@ -129,10 +129,12 @@ impl<S: DataStore> App<S> {
         self.running = false;
     }
 
+    // MIGRATE: DONE
     fn get_current_path_string(&self) -> String {
         self.current_path.to_string_lossy().to_string()
     }
 
+    // MIGRATE: DONE
     pub fn get_current_folder(&self) -> Option<&Folder> {
         self.file_tree_map.get(&self.get_current_path_string())
     }
@@ -153,6 +155,7 @@ impl<S: DataStore> App<S> {
     }
 
     // TODO: refactor
+    // MIGRATE: DONE
     fn sort_current_folder(&mut self) {
         let app_sort_by = self.ui_config.sort_by.clone();
         if let Some(folder) = self.get_current_folder_v2() {
@@ -174,15 +177,18 @@ impl<S: DataStore> App<S> {
         }
     }
 
+    // MIGRATE: DONE
     fn set_current_folder(&mut self, folder: Folder) {
         self.file_tree_map
             .insert(self.get_current_path_string(), folder);
     }
 
+    // MIGRATE: DONE
     pub fn on_toggle_move_to_trash(&mut self) {
         self.ui_config.move_to_trash = !self.ui_config.move_to_trash;
     }
 
+    // MIGRATE: DONE
     pub fn get_current_folder_v2(&mut self) -> Option<&mut Folder> {
         self.file_tree_map.get_mut(&self.get_current_path_string())
     }
@@ -205,6 +211,7 @@ impl<S: DataStore> App<S> {
         self.ui_config.confirming_deletion = false;
     }
 
+    // MIGRATE: DONE
     fn navigate_to_parent(&mut self) {
         if let Some(parent) = PathBuf::from(&self.current_path).parent() {
             let parent_buf = parent.to_path_buf();
@@ -214,6 +221,7 @@ impl<S: DataStore> App<S> {
     }
 
     // TODO: process first entry sync (same as parent)
+    // MIGRATE: DONE
     fn navigate_to_child(&mut self, title: &String) {
         let mut new_path = PathBuf::from(&self.current_path);
         new_path.push(title);
