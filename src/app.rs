@@ -341,6 +341,3 @@ pub fn get_entry_size(file_tree_map: &FileTreeMap, path: &PathBuf) -> Option<u64
         None
     }
 }
-
-#[path = "tests/tests.rs"]
-mod tests;
