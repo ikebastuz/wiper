@@ -1,13 +1,15 @@
 pub mod common;
 
 use crate::common::*;
+use wiper::app::App;
+use wiper::fs::Store;
 
 mod cursor {
     use super::*;
 
     #[tokio::test]
     async fn updates_cursor_position() {
-        let mut app = setup_app_view();
+        let mut app: App<Store> = setup_app_view();
         await_for_tasks(&mut app).await;
 
         assert_cursor_index(&mut app, 0);
@@ -21,7 +23,7 @@ mod cursor {
 
     #[tokio::test]
     async fn stops_cursor_at_very_top() {
-        let mut app = setup_app_view();
+        let mut app: App<Store> = setup_app_view();
         await_for_tasks(&mut app).await;
 
         assert_cursor_index(&mut app, 0);
@@ -35,7 +37,7 @@ mod cursor {
 
     #[tokio::test]
     async fn stops_cursor_at_very_bottom() {
-        let mut app = setup_app_view();
+        let mut app: App<Store> = setup_app_view();
         await_for_tasks(&mut app).await;
 
         for _ in 0..20 {

@@ -6,9 +6,11 @@ use trash;
 
 mod folder;
 mod folder_entry;
+mod store;
 mod utils;
 pub use folder::Folder;
 pub use folder_entry::{FolderEntry, FolderEntryType};
+pub use store::{Store, WiperStore};
 pub use utils::path_buf_to_string;
 
 #[derive(Debug, Clone, PartialEq)]

@@ -1,7 +1,11 @@
 use crate::app::{App, AppResult};
+use crate::fs::WiperStore;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+pub async fn handle_key_events<S: WiperStore>(
+    key_event: KeyEvent,
+    app: &mut App<S>,
+) -> AppResult<()> {
     match key_event.code {
         // Exit application on `ESC` or `q`
         KeyCode::Esc | KeyCode::Char('q') => {

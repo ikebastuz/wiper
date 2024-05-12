@@ -1,6 +1,8 @@
 pub mod common;
 use crate::common::*;
+use wiper::app::App;
 use wiper::fs::FolderEntryType;
+use wiper::fs::Store;
 
 mod delete {
     use super::*;
@@ -61,7 +63,7 @@ mod delete {
     #[tokio::test]
     async fn has_correct_initial_state() {
         create_testing_files();
-        let mut app = setup_app_edit();
+        let mut app: App<Store> = setup_app_edit();
         await_for_tasks(&mut app).await;
 
         assert_delete_folder_state(&app);
@@ -71,7 +73,7 @@ mod delete {
     #[tokio::test]
     async fn does_nothing_when_cursor_is_at_the_top() {
         create_testing_files();
-        let mut app = setup_app_edit();
+        let mut app: App<Store> = setup_app_edit();
         await_for_tasks(&mut app).await;
 
         assert_cursor_index(&app, 0);
@@ -87,7 +89,7 @@ mod delete {
     #[tokio::test]
     async fn does_nothing_when_delete_pressed_once() {
         create_testing_files();
-        let mut app = setup_app_edit();
+        let mut app: App<Store> = setup_app_edit();
         await_for_tasks(&mut app).await;
 
         assert_delete_folder_state(&app);
@@ -103,7 +105,7 @@ mod delete {
     #[tokio::test]
     async fn resets_delete_confirmation_on_cursor_move() {
         create_testing_files();
-        let mut app = setup_app_edit();
+        let mut app: App<Store> = setup_app_edit();
         await_for_tasks(&mut app).await;
 
         app.on_delete();
@@ -118,7 +120,7 @@ mod delete {
     #[tokio::test]
     async fn resets_delete_confirmation_on_folder_enter() {
         create_testing_files();
-        let mut app = setup_app_edit();
+        let mut app: App<Store> = setup_app_edit();
         await_for_tasks(&mut app).await;
 
         app.on_cursor_down();
@@ -131,7 +133,7 @@ mod delete {
     #[tokio::test]
     async fn resets_delete_confirmation_after_deleting_folder() {
         create_testing_files();
-        let mut app = setup_app_edit();
+        let mut app: App<Store> = setup_app_edit();
         await_for_tasks(&mut app).await;
 
         app.on_cursor_down();
@@ -144,7 +146,7 @@ mod delete {
     #[tokio::test]
     async fn resets_delete_confirmation_after_deleting_file() {
         create_testing_files();
-        let mut app = setup_app_edit();
+        let mut app: App<Store> = setup_app_edit();
         await_for_tasks(&mut app).await;
 
         app.on_cursor_down();
@@ -158,7 +160,7 @@ mod delete {
     #[tokio::test]
     async fn deletes_folder() {
         create_testing_files();
-        let mut app = setup_app_edit();
+        let mut app: App<Store> = setup_app_edit();
         await_for_tasks(&mut app).await;
 
         assert_delete_folder_state(&app);
@@ -175,7 +177,7 @@ mod delete {
     #[tokio::test]
     async fn deletes_file() {
         create_testing_files();
-        let mut app = setup_app_edit();
+        let mut app: App<Store> = setup_app_edit();
         await_for_tasks(&mut app).await;
         assert_delete_folder_state(&app);
         app.on_cursor_down();
@@ -192,7 +194,7 @@ mod delete {
     #[tokio::test]
     async fn updated_current_folder_size() {
         create_testing_files();
-        let mut app = setup_app_edit();
+        let mut app: App<Store> = setup_app_edit();
         await_for_tasks(&mut app).await;
 
         let root_entry = app.get_current_folder().unwrap();
@@ -213,7 +215,7 @@ mod delete {
     #[tokio::test]
     async fn deleting_file_updates_parent_folders_sizes() {
         create_testing_files();
-        let mut app = setup_app_edit();
+        let mut app: App<Store> = setup_app_edit();
         await_for_tasks(&mut app).await;
 
         let root_entry = app.get_current_folder().unwrap();
@@ -271,7 +273,7 @@ mod delete {
     #[tokio::test]
     async fn deleting_folder_updates_parent_folders_sizes() {
         create_testing_files();
-        let mut app = setup_app_edit();
+        let mut app: App<Store> = setup_app_edit();
         await_for_tasks(&mut app).await;
 
         let root_entry = app.get_current_folder().unwrap();
@@ -309,7 +311,7 @@ mod delete {
     #[tokio::test]
     async fn moves_cursor_one_step_up_after_deleting_bottom_entry() {
         create_testing_files();
-        let mut app = setup_app_edit();
+        let mut app: App<Store> = setup_app_edit();
         await_for_tasks(&mut app).await;
 
         for _ in 1..20 {

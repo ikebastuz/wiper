@@ -2,7 +2,8 @@ use opener;
 use std::error;
 
 use crate::fs::{
-    delete_file, delete_folder, path_buf_to_string, path_to_folder, Folder, FolderEntryType, SortBy,
+    delete_file, delete_folder, path_buf_to_string, path_to_folder, Folder, FolderEntryType,
+    SortBy, WiperStore,
 };
 use crate::task_manager::TaskManager;
 use std::time::SystemTime;
@@ -22,7 +23,7 @@ pub type FileTreeMap = HashMap<String, Folder>;
 
 /// Application.
 #[derive(Debug)]
-pub struct App {
+pub struct App<S: WiperStore> {
     /// Current file path buffer
     pub current_path: PathBuf,
     /// Config to render UI
@@ -34,9 +35,10 @@ pub struct App {
     /// Current timestamp (for debugging) - remove later
     pub time: u128,
     pub task_manager: TaskManager,
+    pub store: S,
 }
 
-impl Default for App {
+impl<S: WiperStore> Default for App<S> {
     fn default() -> Self {
         Self {
             current_path: PathBuf::from("."),
@@ -52,11 +54,12 @@ impl Default for App {
                 debug_enabled: false,
             },
             task_manager: TaskManager::new(),
+            store: S::new(),
         }
     }
 }
 
-impl App {
+impl<S: WiperStore> App<S> {
     /// Constructs a new instance of [`App`].
     pub fn new(config: InitConfig) -> Self {
         let current_path = match config.file_path {

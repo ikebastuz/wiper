@@ -1,31 +1,31 @@
 use wiper::app::App;
 use wiper::config::InitConfig;
-use wiper::fs::{FolderEntry, FolderEntryType};
+use wiper::fs::{FolderEntry, FolderEntryType, WiperStore};
 
 pub const TEST_FILE_PATH_VIEW: &str = "./tests/test_files/view";
 pub const TEST_FILE_PATH_EDIT: &str = "./tests/test_files/edit";
-pub fn setup_app_view() -> App {
+pub fn setup_app_view<S: WiperStore>() -> App<S> {
     let c = InitConfig {
         file_path: Some(TEST_FILE_PATH_VIEW.to_string()),
     };
-    let mut app = App::new(c);
+    let mut app: App<S> = App::new(c);
     app.init();
     app.ui_config.open_file = false;
     app
 }
 
-pub fn setup_app_edit() -> App {
+pub fn setup_app_edit<S: WiperStore>() -> App<S> {
     let c = InitConfig {
         file_path: Some(TEST_FILE_PATH_EDIT.to_string()),
     };
-    let mut app = App::new(c);
+    let mut app: App<S> = App::new(c);
     app.init();
     app.ui_config.open_file = false;
     app.ui_config.move_to_trash = false;
     app
 }
 
-pub async fn await_for_tasks(app: &mut App) {
+pub async fn await_for_tasks<S: WiperStore>(app: &mut App<S>) {
     while !app.task_manager.is_done() {
         app.tick();
 
@@ -34,7 +34,7 @@ pub async fn await_for_tasks(app: &mut App) {
     app.pre_render();
 }
 
-pub fn assert_item_at_index_is(app: &App, index: usize, kind: FolderEntryType) {
+pub fn assert_item_at_index_is<S: WiperStore>(app: &App<S>, index: usize, kind: FolderEntryType) {
     assert_eq!(
         app.get_current_folder()
             .unwrap()
@@ -46,7 +46,7 @@ pub fn assert_item_at_index_is(app: &App, index: usize, kind: FolderEntryType) {
     );
 }
 
-pub fn assert_item_at_index_title(app: &App, index: usize, title: String) {
+pub fn assert_item_at_index_title<S: WiperStore>(app: &App<S>, index: usize, title: String) {
     assert_eq!(
         app.get_current_folder()
             .unwrap()
@@ -58,7 +58,7 @@ pub fn assert_item_at_index_title(app: &App, index: usize, title: String) {
     );
 }
 
-pub fn get_entry_by_kind(app: &App, kind: FolderEntryType) -> Vec<FolderEntry> {
+pub fn get_entry_by_kind<S: WiperStore>(app: &App<S>, kind: FolderEntryType) -> Vec<FolderEntry> {
     app.get_current_folder()
         .unwrap()
         .entries
@@ -68,26 +68,26 @@ pub fn get_entry_by_kind(app: &App, kind: FolderEntryType) -> Vec<FolderEntry> {
         .collect()
 }
 
-pub fn assert_parent_folder_state(app: &App) {
+pub fn assert_parent_folder_state<S: WiperStore>(app: &App<S>) {
     assert_eq!(get_entry_by_kind(app, FolderEntryType::File).len(), 3);
     assert_eq!(get_entry_by_kind(app, FolderEntryType::Folder).len(), 3);
 }
 
-pub fn assert_parent_folder_a_state(app: &App) {
+pub fn assert_parent_folder_a_state<S: WiperStore>(app: &App<S>) {
     assert_eq!(get_entry_by_kind(app, FolderEntryType::File).len(), 2);
     assert_eq!(get_entry_by_kind(app, FolderEntryType::Folder).len(), 0);
 }
 
-pub fn assert_delete_folder_state(app: &App) {
+pub fn assert_delete_folder_state<S: WiperStore>(app: &App<S>) {
     assert_eq!(get_entry_by_kind(app, FolderEntryType::File).len(), 3);
     assert_eq!(get_entry_by_kind(app, FolderEntryType::Folder).len(), 1);
 }
 
-pub fn assert_cursor_index(app: &App, index: usize) {
+pub fn assert_cursor_index<S: WiperStore>(app: &App<S>, index: usize) {
     assert_eq!(app.get_current_folder().unwrap().cursor_index, index);
 }
 
-pub fn assert_root_view_folder_sorted_by_title(app: &App) {
+pub fn assert_root_view_folder_sorted_by_title<S: WiperStore>(app: &App<S>) {
     assert_item_at_index_title(&app, 0, "..".to_string());
     assert_item_at_index_title(&app, 1, "a_folder".to_string());
     assert_item_at_index_title(&app, 2, "b_folder".to_string());
@@ -97,7 +97,7 @@ pub fn assert_root_view_folder_sorted_by_title(app: &App) {
     assert_item_at_index_title(&app, 6, "z_root_file.txt".to_string());
 }
 
-pub fn assert_root_view_folder_sorted_by_size(app: &App) {
+pub fn assert_root_view_folder_sorted_by_size<S: WiperStore>(app: &App<S>) {
     assert_item_at_index_title(&app, 0, "..".to_string());
     assert_item_at_index_title(&app, 1, "b_folder".to_string());
     assert_item_at_index_title(&app, 2, "c_folder".to_string());
