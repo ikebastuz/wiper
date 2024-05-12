@@ -49,7 +49,6 @@ mod file_tree {
 
         app.on_cursor_down();
         app.on_enter();
-
         await_for_tasks(&mut app).await;
 
         assert_item_at_index_title(&app, 0, "..".to_string());
@@ -67,9 +66,10 @@ mod file_tree {
         app.on_enter();
         app.on_toggle_sorting();
         await_for_tasks(&mut app).await;
-        app.on_enter();
 
+        app.on_enter();
         await_for_tasks(&mut app).await;
+
         assert_root_view_folder_sorted_by_size(&app);
     }
 
@@ -80,6 +80,7 @@ mod file_tree {
 
         app.on_toggle_sorting();
         app.on_toggle_sorting();
+        await_for_tasks(&mut app).await;
 
         assert_root_view_folder_sorted_by_title(&app);
     }

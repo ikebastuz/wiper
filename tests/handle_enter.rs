@@ -11,7 +11,6 @@ mod handle_enter {
 
         app.on_cursor_down();
         app.on_enter();
-
         await_for_tasks(&mut app).await;
 
         assert_cursor_index(&app, 0);

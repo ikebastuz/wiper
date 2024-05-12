@@ -78,6 +78,8 @@ mod delete {
         assert_delete_folder_state(&app);
         app.on_delete();
         app.on_delete();
+        await_for_tasks(&mut app).await;
+
         assert_delete_folder_state(&app);
         cleanup_testing_files();
     }
@@ -91,6 +93,8 @@ mod delete {
         assert_delete_folder_state(&app);
         app.on_cursor_down();
         app.on_delete();
+        await_for_tasks(&mut app).await;
+
         assert_eq!(get_entry_by_kind(&app, FolderEntryType::File).len(), 3);
         assert_eq!(get_entry_by_kind(&app, FolderEntryType::Folder).len(), 1);
         cleanup_testing_files();
@@ -179,6 +183,7 @@ mod delete {
         app.on_delete();
         app.on_delete();
         await_for_tasks(&mut app).await;
+
         assert_eq!(get_entry_by_kind(&app, FolderEntryType::File).len(), 2);
         assert_eq!(get_entry_by_kind(&app, FolderEntryType::Folder).len(), 1);
         cleanup_testing_files();
@@ -197,8 +202,8 @@ mod delete {
         app.on_cursor_down();
         app.on_delete();
         app.on_delete();
-
         await_for_tasks(&mut app).await;
+
         let root_entry_updated = app.get_current_folder().unwrap();
         assert_eq!(root_entry_updated.get_size(), (TEST_FILE_SIZE * 8) as u64);
 
