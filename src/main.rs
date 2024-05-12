@@ -6,7 +6,7 @@ use std::process;
 use wiper::app::{App, AppResult};
 use wiper::config::InitConfig;
 use wiper::events::{handle_key_events, Event, EventHandler};
-use wiper::fs::Store;
+use wiper::fs::DSHashmap;
 use wiper::tui::Tui;
 
 #[tokio::main]
@@ -16,7 +16,7 @@ async fn main() -> AppResult<()> {
         process::exit(1);
     });
 
-    let mut app: App<Store> = App::new(config);
+    let mut app: App<DSHashmap> = App::new(config);
     app.init();
 
     let backend = CrosstermBackend::new(io::stderr());

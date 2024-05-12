@@ -1,11 +1,11 @@
 pub struct Store {}
 
-pub trait WiperStore {
+pub trait DataStore {
     fn hello() -> bool;
     fn new() -> Self;
 }
 
-impl WiperStore for Store {
+impl DataStore for Store {
     fn hello() -> bool {
         true
     }

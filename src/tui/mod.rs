@@ -1,6 +1,6 @@
 use crate::app::{App, AppResult};
 use crate::events::EventHandler;
-use crate::fs::WiperStore;
+use crate::fs::DataStore;
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::backend::Backend;
@@ -14,7 +14,7 @@ use std::panic;
 /// It is responsible for setting up the terminal,
 /// initializing the interface and handling the draw events.
 #[derive(Debug)]
-pub struct Tui<B: Backend, S: WiperStore> {
+pub struct Tui<B: Backend, S: DataStore> {
     /// Interface to the Terminal.
     terminal: Terminal<B>,
     /// Terminal event handler.
@@ -22,7 +22,7 @@ pub struct Tui<B: Backend, S: WiperStore> {
     _store: PhantomData<S>,
 }
 
-impl<B: Backend, S: WiperStore> Tui<B, S> {
+impl<B: Backend, S: DataStore> Tui<B, S> {
     /// Constructs a new instance of [`Tui`].
     pub fn new(terminal: Terminal<B>, events: EventHandler) -> Self {
         Self {

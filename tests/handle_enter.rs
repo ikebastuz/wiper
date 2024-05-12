@@ -2,13 +2,14 @@ pub mod common;
 use crate::common::*;
 
 use wiper::app::App;
-use wiper::fs::Store;
+use wiper::fs::DSHashmap;
 mod handle_enter {
+
     use super::*;
 
     #[tokio::test]
     async fn updates_current_tree_when_enters_subfolder() {
-        let mut app: App<Store> = setup_app_view();
+        let mut app: App<DSHashmap> = setup_app_view();
         await_for_tasks(&mut app).await;
 
         app.on_cursor_down();
@@ -21,7 +22,7 @@ mod handle_enter {
 
     #[tokio::test]
     async fn navigates_back_to_parent_folder() {
-        let mut app: App<Store> = setup_app_view();
+        let mut app: App<DSHashmap> = setup_app_view();
         await_for_tasks(&mut app).await;
 
         app.on_cursor_down();
@@ -39,7 +40,7 @@ mod handle_enter {
 
     #[tokio::test]
     async fn does_nothing_when_tries_to_enter_file() {
-        let mut app: App<Store> = setup_app_view();
+        let mut app: App<DSHashmap> = setup_app_view();
         await_for_tasks(&mut app).await;
 
         app.on_cursor_down();

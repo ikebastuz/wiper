@@ -1,8 +1,8 @@
 use crate::app::{App, AppResult};
-use crate::fs::WiperStore;
+use crate::fs::DataStore;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-pub async fn handle_key_events<S: WiperStore>(
+pub async fn handle_key_events<S: DataStore>(
     key_event: KeyEvent,
     app: &mut App<S>,
 ) -> AppResult<()> {
