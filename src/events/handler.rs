@@ -13,10 +13,10 @@ pub async fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<
         KeyCode::Down | KeyCode::Char('j') => {
             app.on_cursor_down();
         }
-        KeyCode::Enter => {
+        KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => {
             app.on_enter();
         }
-        KeyCode::Backspace => {
+        KeyCode::Backspace | KeyCode::Left | KeyCode::Char('h') => {
             app.on_backspace();
         }
         // Exit application on `Ctrl-C`
