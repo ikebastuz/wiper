@@ -4,8 +4,6 @@ use ratatui::{prelude::*, widgets::*};
 
 use crate::ui::utils::{format_file_size, value_to_box};
 
-const TEXT_TITLE: &str = "Wiper";
-
 pub fn render_title(
     area: Rect,
     buf: &mut Buffer,
@@ -20,8 +18,7 @@ pub fn render_title(
 
     if let Some(folder) = maybe_folder {
         Paragraph::new(format!(
-            "{} | {} | {}",
-            TEXT_TITLE,
+            "{} | {}",
             folder.title,
             format_file_size(folder.get_size()),
         ))

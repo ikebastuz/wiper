@@ -12,6 +12,7 @@ use crate::ui::constants::{
 };
 use crate::ui::utils::folder_to_rows;
 
+const MAX_LOG_LEN: usize = 40;
 #[derive(Debug)]
 pub struct DebugData<'a> {
     pub path_stack: usize,
@@ -48,6 +49,8 @@ pub fn render_content(
 pub fn render_table(area: Rect, buf: &mut Buffer, folder: &Folder, config: &UIConfig) {
     let block = Block::default()
         .borders(Borders::ALL)
+        .padding(Padding::horizontal(1))
+        .border_set(symbols::border::PROPORTIONAL_TALL)
         .fg(TEXT_COLOR)
         .bg(NORMAL_ROW_COLOR);
 
@@ -96,17 +99,9 @@ pub fn render_table(area: Rect, buf: &mut Buffer, folder: &Folder, config: &UICo
 }
 
 pub fn render_debug_panel(area: Rect, buf: &mut Buffer, logger: &Logger, debug_data: &DebugData) {
-    let outer_block = Block::default()
-        .borders(Borders::ALL)
-        .border_set(symbols::border::PROPORTIONAL_TALL)
-        .border_style(TEXT_PRE_DELETED_BG)
-        .padding(Padding::uniform(1))
-        .title("Debug")
-        .inner(area);
+    let [top, bottom] = Layout::vertical([Constraint::Max(5), Constraint::Fill(1)]).areas(area);
 
-    let [top, bottom] =
-        Layout::vertical([Constraint::Max(5), Constraint::Fill(1)]).areas(outer_block);
-
+    // Stats
     let time_taken = debug_data
         .task_timer
         .start
@@ -116,9 +111,9 @@ pub fn render_debug_panel(area: Rect, buf: &mut Buffer, logger: &Logger, debug_d
                 .finish
                 .map(|finish| (finish - start).to_string())
         })
-        .unwrap_or_else(|| "N/A".to_string());
+        .unwrap_or_else(|| "...".to_string());
 
-    let debug_text = Text::from(format!(
+    let stats_text = Text::from(format!(
         "Stack -> {} <-> {} <- Threads\nDone in: {}\nFPS: {} | Skipped: {}",
         debug_data.path_stack,
         debug_data.threads,
@@ -127,22 +122,47 @@ pub fn render_debug_panel(area: Rect, buf: &mut Buffer, logger: &Logger, debug_d
         debug_data.skipped_frames
     ));
 
-    Paragraph::new(debug_text).left_aligned().render(top, buf);
+    let stats_block = Block::default()
+        .padding(Padding::horizontal(1))
+        .borders(Borders::ALL)
+        .border_set(symbols::border::PROPORTIONAL_TALL)
+        .title("Stats")
+        .title_alignment(Alignment::Center);
 
-    let items: Vec<ListItem> = logger
+    let stats = Paragraph::new(stats_text).left_aligned().block(stats_block);
+
+    Widget::render(stats, top, buf);
+
+    // Logs
+    let logs_block = Block::default()
+        .padding(Padding::horizontal(1))
+        .borders(Borders::ALL)
+        .border_set(symbols::border::PROPORTIONAL_TALL)
+        .title("Logs")
+        .title_alignment(Alignment::Center);
+
+    let logs: Vec<ListItem> = logger
         .messages
         .iter()
         .enumerate()
         .map(|(_i, (level, message))| {
+            let mut message = message.clone();
+            if message.len() > MAX_LOG_LEN {
+                message = format!(
+                    "{}..{}",
+                    &message[..MAX_LOG_LEN / 4],
+                    &message[message.len() - MAX_LOG_LEN / 4 * 3..]
+                );
+            }
             let style = Style::default();
             let style = match level {
                 MessageLevel::Info => style.fg(TEXT_COLOR),
                 MessageLevel::Error => style.fg(TEXT_PRE_DELETED_BG),
             };
-            ListItem::from(message.clone()).style(style)
+            ListItem::from(message).style(style)
         })
         .collect();
 
-    let items = List::new(items);
-    StatefulWidget::render(items, bottom, buf, &mut ListState::default());
+    let items = List::new(logs).block(logs_block);
+    Widget::render(items, bottom, buf);
 }

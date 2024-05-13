@@ -1,6 +1,7 @@
 use crate::fs::DataStore;
 use crate::{app::App, fs::DataStoreKey};
 use ratatui::prelude::*;
+use ratatui::widgets::*;
 
 pub mod constants;
 mod content;
@@ -21,7 +22,19 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
             Constraint::Fill(1),
             Constraint::Length(3),
         ]);
-        let [header_area, rest_area, footer_area] = vertical.areas(area);
+
+        let block = Block::default()
+            .title(" Wiper ")
+            .title_alignment(Alignment::Center)
+            .borders(Borders::ALL)
+            .padding(Padding::horizontal(1))
+            .border_set(symbols::border::DOUBLE);
+
+        let inner_area = block.inner(area);
+
+        Widget::render(block, area, buf);
+
+        let [header_area, rest_area, footer_area] = vertical.areas(inner_area);
 
         let maybe_folder = self.store.get_current_folder();
 
@@ -29,8 +42,8 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
             path_stack: self.task_manager.path_buf_stack.len(),
             threads: self.task_manager.receiver_stack.len(),
             task_timer: &self.task_manager.task_timer,
-            fps: format!("{:.2}", fps),
-            skipped_frames: format!("{:.2}", self.fps_counter.skipped_frames),
+            fps: format!("{:.1}", fps),
+            skipped_frames: format!("{:.1}", self.fps_counter.skipped_frames),
         };
 
         render_title(header_area, buf, maybe_folder, &self.ui_config);
