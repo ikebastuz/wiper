@@ -9,7 +9,7 @@ use std::time::SystemTime;
 use crate::config::{InitConfig, UIConfig};
 use std::env;
 
-use crate::logger::Logger;
+use crate::logger::{Logger, MessageLevel};
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -80,6 +80,8 @@ impl<S: DataStore<PathBuf>> App<S> {
 
     pub fn init(&mut self) {
         let path_buf = self.store.get_current_path().clone();
+        self.logger
+            .log(path_buf.to_string_lossy().to_string(), MessageLevel::Info);
         self.task_manager.maybe_add_task(&self.store, &path_buf);
     }
 
@@ -164,12 +166,18 @@ impl<S: DataStore<PathBuf>> App<S> {
     // MIGRATE: DONE
     fn navigate_to_parent(&mut self) {
         if let Some(parent_path) = self.store.move_to_parent() {
+            self.logger.log(
+                parent_path.to_string_lossy().to_string(),
+                MessageLevel::Info,
+            );
             self.process_filepath_sync(parent_path);
         }
     }
 
     fn navigate_to_child(&mut self, title: &String) {
         let child_path = self.store.move_to_child(title);
+        self.logger
+            .log(child_path.to_string_lossy().to_string(), MessageLevel::Info);
         self.task_manager.maybe_add_task(&self.store, &child_path);
     }
 

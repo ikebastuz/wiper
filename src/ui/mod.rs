@@ -5,13 +5,13 @@ use crate::fs::DataStore;
 use ratatui::prelude::*;
 
 pub mod constants;
+mod content;
 mod footer;
-mod table;
 mod title;
 mod utils;
+pub use content::{render_content, DebugData};
 pub use footer::render_footer;
-pub use table::render_table;
-pub use title::{render_title, DebugData};
+pub use title::render_title;
 
 impl<S: DataStore<PathBuf>> Widget for &mut App<S> {
     fn render(self, area: Rect, buf: &mut Buffer) {
@@ -32,8 +32,15 @@ impl<S: DataStore<PathBuf>> Widget for &mut App<S> {
             time: self.time,
         };
 
-        render_title(header_area, buf, maybe_folder, &self.ui_config, &debug);
-        render_table(rest_area, buf, maybe_folder, &self.ui_config, &self.logger);
+        render_title(header_area, buf, maybe_folder, &self.ui_config);
+        render_content(
+            rest_area,
+            buf,
+            maybe_folder,
+            &self.ui_config,
+            &self.logger,
+            &debug,
+        );
         render_footer(footer_area, buf);
     }
 }
