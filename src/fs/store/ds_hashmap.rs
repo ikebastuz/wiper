@@ -48,7 +48,7 @@ impl DataStore for DSHashmap {
     }
 
     fn set_current_folder(&mut self, folder: Folder) {
-        self.store.insert(self.current_path.clone(), folder);
+        self.set_folder(&self.current_path.clone(), folder);
     }
 
     // TODO: refactor
@@ -92,8 +92,6 @@ impl DataStore for DSHashmap {
 
         new_path
     }
-
-    fn delete_current_entry(&mut self) {}
 
     fn get_entry_size(&mut self, path: &PathBuf) -> Option<u64> {
         if let Some(entry) = self.store.get(path) {
