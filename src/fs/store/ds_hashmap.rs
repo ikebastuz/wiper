@@ -11,7 +11,7 @@ pub struct DSHashmap {
     pub store: FileTreeMap,
 }
 
-impl DataStore for DSHashmap {
+impl DataStore<PathBuf> for DSHashmap {
     fn new() -> DSHashmap {
         DSHashmap {
             current_path: PathBuf::from("."),

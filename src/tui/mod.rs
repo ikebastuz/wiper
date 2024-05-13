@@ -8,13 +8,14 @@ use ratatui::Terminal;
 use std::io;
 use std::marker::PhantomData;
 use std::panic;
+use std::path::PathBuf;
 
 /// Representation of a terminal user interface.
 ///
 /// It is responsible for setting up the terminal,
 /// initializing the interface and handling the draw events.
 #[derive(Debug)]
-pub struct Tui<B: Backend, S: DataStore> {
+pub struct Tui<B: Backend, S: DataStore<PathBuf>> {
     /// Interface to the Terminal.
     terminal: Terminal<B>,
     /// Terminal event handler.
@@ -22,7 +23,7 @@ pub struct Tui<B: Backend, S: DataStore> {
     _store: PhantomData<S>,
 }
 
-impl<B: Backend, S: DataStore> Tui<B, S> {
+impl<B: Backend, S: DataStore<PathBuf>> Tui<B, S> {
     /// Constructs a new instance of [`Tui`].
     pub fn new(terminal: Terminal<B>, events: EventHandler) -> Self {
         Self {

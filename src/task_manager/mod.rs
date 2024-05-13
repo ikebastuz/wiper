@@ -9,7 +9,7 @@ use tokio::sync::mpsc::Receiver;
 const THREAD_LIMIT: usize = 1000;
 
 #[derive(Debug)]
-pub struct TaskManager<S: DataStore> {
+pub struct TaskManager<S: DataStore<PathBuf>> {
     /// Stack of file paths to process
     pub path_buf_stack: VecDeque<PathBuf>,
     /// Stack of receivers to accept processed path
@@ -17,7 +17,7 @@ pub struct TaskManager<S: DataStore> {
     _store: PhantomData<S>,
 }
 
-impl<S: DataStore> TaskManager<S> {
+impl<S: DataStore<PathBuf>> TaskManager<S> {
     pub fn new() -> Self {
         TaskManager::<S> {
             path_buf_stack: VecDeque::new(),

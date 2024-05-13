@@ -20,7 +20,7 @@ enum DiffKind {
 
 /// Application.
 #[derive(Debug)]
-pub struct App<S: DataStore> {
+pub struct App<S: DataStore<PathBuf>> {
     /// Config to render UI
     pub ui_config: UIConfig,
     /// Is the application running?
@@ -35,7 +35,7 @@ pub struct App<S: DataStore> {
     pub logger: Logger,
 }
 
-impl<S: DataStore> Default for App<S> {
+impl<S: DataStore<PathBuf>> Default for App<S> {
     fn default() -> Self {
         Self {
             running: true,
@@ -55,7 +55,7 @@ impl<S: DataStore> Default for App<S> {
     }
 }
 
-impl<S: DataStore> App<S> {
+impl<S: DataStore<PathBuf>> App<S> {
     /// Constructs a new instance of [`App`].
     pub fn new(config: InitConfig) -> Self {
         let current_path = match config.file_path {

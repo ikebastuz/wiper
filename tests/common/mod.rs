@@ -1,10 +1,12 @@
+use std::path::PathBuf;
+
 use wiper::app::App;
 use wiper::config::InitConfig;
 use wiper::fs::{DataStore, Folder, FolderEntry, FolderEntryType, SortBy};
 
 pub const TEST_FILE_PATH_VIEW: &str = "./tests/test_files/view";
 pub const TEST_FILE_PATH_EDIT: &str = "./tests/test_files/edit";
-pub fn setup_app_view<S: DataStore>() -> App<S> {
+pub fn setup_app_view<S: DataStore<PathBuf>>() -> App<S> {
     let c = InitConfig {
         file_path: Some(TEST_FILE_PATH_VIEW.to_string()),
     };
@@ -15,7 +17,7 @@ pub fn setup_app_view<S: DataStore>() -> App<S> {
     app
 }
 
-pub fn setup_app_edit<S: DataStore>() -> App<S> {
+pub fn setup_app_edit<S: DataStore<PathBuf>>() -> App<S> {
     let c = InitConfig {
         file_path: Some(TEST_FILE_PATH_EDIT.to_string()),
     };
@@ -27,7 +29,7 @@ pub fn setup_app_edit<S: DataStore>() -> App<S> {
     app
 }
 
-pub async fn await_for_tasks<S: DataStore>(app: &mut App<S>) {
+pub async fn await_for_tasks<S: DataStore<PathBuf>>(app: &mut App<S>) {
     while !app.task_manager.is_done() {
         app.tick();
 
@@ -36,7 +38,11 @@ pub async fn await_for_tasks<S: DataStore>(app: &mut App<S>) {
     app.pre_render();
 }
 
-pub fn assert_item_at_index_is<S: DataStore>(app: &App<S>, index: usize, kind: FolderEntryType) {
+pub fn assert_item_at_index_is<S: DataStore<PathBuf>>(
+    app: &App<S>,
+    index: usize,
+    kind: FolderEntryType,
+) {
     assert_eq!(
         app.store
             .get_current_folder()
@@ -49,7 +55,11 @@ pub fn assert_item_at_index_is<S: DataStore>(app: &App<S>, index: usize, kind: F
     );
 }
 
-pub fn assert_item_at_index_title<S: DataStore>(app: &App<S>, index: usize, title: String) {
+pub fn assert_item_at_index_title<S: DataStore<PathBuf>>(
+    app: &App<S>,
+    index: usize,
+    title: String,
+) {
     assert_eq!(
         app.store
             .get_current_folder()
@@ -62,7 +72,10 @@ pub fn assert_item_at_index_title<S: DataStore>(app: &App<S>, index: usize, titl
     );
 }
 
-pub fn get_entry_by_kind<S: DataStore>(app: &App<S>, kind: FolderEntryType) -> Vec<FolderEntry> {
+pub fn get_entry_by_kind<S: DataStore<PathBuf>>(
+    app: &App<S>,
+    kind: FolderEntryType,
+) -> Vec<FolderEntry> {
     app.store
         .get_current_folder()
         .unwrap()
@@ -73,26 +86,26 @@ pub fn get_entry_by_kind<S: DataStore>(app: &App<S>, kind: FolderEntryType) -> V
         .collect()
 }
 
-pub fn assert_parent_folder_state<S: DataStore>(app: &App<S>) {
+pub fn assert_parent_folder_state<S: DataStore<PathBuf>>(app: &App<S>) {
     assert_eq!(get_entry_by_kind(app, FolderEntryType::File).len(), 3);
     assert_eq!(get_entry_by_kind(app, FolderEntryType::Folder).len(), 3);
 }
 
-pub fn assert_parent_folder_a_state<S: DataStore>(app: &App<S>) {
+pub fn assert_parent_folder_a_state<S: DataStore<PathBuf>>(app: &App<S>) {
     assert_eq!(get_entry_by_kind(app, FolderEntryType::File).len(), 2);
     assert_eq!(get_entry_by_kind(app, FolderEntryType::Folder).len(), 0);
 }
 
-pub fn assert_delete_folder_state<S: DataStore>(app: &App<S>) {
+pub fn assert_delete_folder_state<S: DataStore<PathBuf>>(app: &App<S>) {
     assert_eq!(get_entry_by_kind(app, FolderEntryType::File).len(), 3);
     assert_eq!(get_entry_by_kind(app, FolderEntryType::Folder).len(), 1);
 }
 
-pub fn assert_cursor_index<S: DataStore>(app: &App<S>, index: usize) {
+pub fn assert_cursor_index<S: DataStore<PathBuf>>(app: &App<S>, index: usize) {
     assert_eq!(app.store.get_current_folder().unwrap().cursor_index, index);
 }
 
-pub fn assert_root_view_folder_sorted_by_title<S: DataStore>(app: &App<S>) {
+pub fn assert_root_view_folder_sorted_by_title<S: DataStore<PathBuf>>(app: &App<S>) {
     assert_item_at_index_title(&app, 0, "..".to_string());
     assert_item_at_index_title(&app, 1, "a_folder".to_string());
     assert_item_at_index_title(&app, 2, "b_folder".to_string());
@@ -102,7 +115,7 @@ pub fn assert_root_view_folder_sorted_by_title<S: DataStore>(app: &App<S>) {
     assert_item_at_index_title(&app, 6, "z_root_file.txt".to_string());
 }
 
-pub fn assert_root_view_folder_sorted_by_size<S: DataStore>(app: &App<S>) {
+pub fn assert_root_view_folder_sorted_by_size<S: DataStore<PathBuf>>(app: &App<S>) {
     assert_item_at_index_title(&app, 0, "..".to_string());
     assert_item_at_index_title(&app, 1, "b_folder".to_string());
     assert_item_at_index_title(&app, 2, "c_folder".to_string());
@@ -112,6 +125,6 @@ pub fn assert_root_view_folder_sorted_by_size<S: DataStore>(app: &App<S>) {
     assert_item_at_index_title(&app, 6, "z_root_file.txt".to_string());
 }
 
-pub fn get_current_folder<S: DataStore>(app: &App<S>) -> Option<&Folder> {
+pub fn get_current_folder<S: DataStore<PathBuf>>(app: &App<S>) -> Option<&Folder> {
     app.store.get_current_folder()
 }

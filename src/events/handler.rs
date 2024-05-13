@@ -1,8 +1,10 @@
+use std::path::PathBuf;
+
 use crate::app::{App, AppResult};
 use crate::fs::DataStore;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-pub async fn handle_key_events<S: DataStore>(
+pub async fn handle_key_events<S: DataStore<PathBuf>>(
     key_event: KeyEvent,
     app: &mut App<S>,
 ) -> AppResult<()> {
