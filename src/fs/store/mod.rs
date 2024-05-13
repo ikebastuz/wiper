@@ -35,7 +35,7 @@ pub trait DataStore<T> {
     fn sort_current_folder(&mut self, sort_by: SortBy);
 
     /// Update current active path to its parent
-    fn move_to_parent(&mut self) -> Option<T>;
+    fn move_to_parent(&mut self) -> Vec<T>;
 
     /// Update current active path to child folder by provided title
     fn move_to_child(&mut self, title: &String) -> T;
@@ -48,6 +48,9 @@ pub trait DataStore<T> {
 
     /// Get amount of processed file paths
     fn get_nodes_len(&self) -> usize;
+
+    /// Processes received folder, stores, returns array of paths to process later
+    fn process_path(&mut self, path: &T) -> Vec<PathBuf>;
 }
 
 pub type DataStoreKey = PathBuf;

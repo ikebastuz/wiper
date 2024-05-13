@@ -1,9 +1,7 @@
 use opener;
 use std::error;
 
-use crate::fs::{
-    delete_file, delete_folder, path_to_folder, DataStore, DataStoreKey, FolderEntryType, SortBy,
-};
+use crate::fs::{delete_file, delete_folder, DataStore, DataStoreKey, FolderEntryType, SortBy};
 use crate::task_manager::TaskManager;
 use std::path::PathBuf;
 use std::time::SystemTime;
@@ -82,25 +80,6 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         self.task_manager.maybe_add_task(&self.store, &path_buf);
     }
 
-    // TODO: finish impl same as after receiving from worker thread (propagate up)
-    fn process_filepath_sync(&mut self, path_buf: PathBuf) {
-        if !self.store.has_path(&path_buf) {
-            let mut folder = path_to_folder(path_buf.clone());
-            for child_entry in folder.entries.iter_mut() {
-                if child_entry.kind == FolderEntryType::Folder {
-                    let mut subfolder_path = path_buf.clone();
-                    subfolder_path.push(&child_entry.title);
-                    child_entry.size = self.store.get_entry_size(&subfolder_path);
-
-                    self.task_manager
-                        .maybe_add_task(&self.store, &subfolder_path);
-                }
-            }
-
-            self.store.set_folder(&path_buf, folder);
-        }
-    }
-
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
         self.task_manager.process_next_batch();
@@ -162,12 +141,14 @@ impl<S: DataStore<DataStoreKey>> App<S> {
 
     // MIGRATE: DONE
     fn navigate_to_parent(&mut self) {
-        if let Some(parent_path) = self.store.move_to_parent() {
-            self.logger.log(
-                parent_path.to_string_lossy().to_string(),
-                MessageLevel::Info,
-            );
-            self.process_filepath_sync(parent_path);
+        let to_process_subfolders = self.store.move_to_parent();
+
+        self.logger.log(
+            self.store.get_current_path().to_string_lossy().to_string(),
+            MessageLevel::Info,
+        );
+        for subfolder in to_process_subfolders {
+            self.task_manager.maybe_add_task(&self.store, &subfolder);
         }
     }
 

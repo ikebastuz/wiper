@@ -60,50 +60,51 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         while idx < self.receiver_stack.len() {
             match self.receiver_stack[idx].try_recv() {
                 Ok(result) => {
-                    let (path_buf, mut folder) = result;
-                    // Push child folders to stack
-                    for child_entry in folder.entries.iter_mut() {
-                        if child_entry.kind == FolderEntryType::Folder {
-                            let mut subfolder_path = path_buf.clone();
-                            subfolder_path.push(&child_entry.title);
-                            child_entry.size = store.get_entry_size(&subfolder_path);
-                            folder.sorted_by = None;
-
-                            self.maybe_add_task(&store, &subfolder_path)
-                        }
-                    }
-                    store.set_folder(&path_buf, folder.clone());
-
-                    let mut t = folder.clone();
-                    let mut p = path_buf.clone();
-
-                    while let Some(parent_buf) = p.parent() {
-                        if parent_buf == p {
-                            break;
-                        }
-                        if let Some(parent_folder) =
-                            store.get_folder_mut(&PathBuf::from(parent_buf))
-                        {
-                            for entry in parent_folder.entries.iter_mut() {
-                                if entry.title == t.title {
-                                    entry.size = Some(t.get_size());
-                                    parent_folder.sorted_by = None;
-
-                                    break;
-                                }
-                            }
-                            t = parent_folder.clone();
-                            p = parent_buf.to_path_buf();
-                        } else {
-                            break;
-                        }
-                    }
+                    let (path_buf, folder) = result;
+                    self.process_entry(store, &path_buf, folder);
                     // TODO: probably unsafe
                     self.receiver_stack.remove(idx);
                 }
                 Err(_) => {
                     idx += 1;
                 }
+            }
+        }
+    }
+
+    pub fn process_entry(&mut self, store: &mut S, path_buf: &PathBuf, mut folder: Folder) {
+        for child_entry in folder.entries.iter_mut() {
+            if child_entry.kind == FolderEntryType::Folder {
+                let mut subfolder_path = path_buf.clone();
+                subfolder_path.push(&child_entry.title);
+                child_entry.size = store.get_entry_size(&subfolder_path);
+                folder.sorted_by = None;
+
+                self.maybe_add_task(&store, &subfolder_path)
+            }
+        }
+        store.set_folder(&path_buf, folder.clone());
+
+        let mut t = folder.clone();
+        let mut p = path_buf.clone();
+
+        while let Some(parent_buf) = p.parent() {
+            if parent_buf == p {
+                break;
+            }
+            if let Some(parent_folder) = store.get_folder_mut(&PathBuf::from(parent_buf)) {
+                for entry in parent_folder.entries.iter_mut() {
+                    if entry.title == t.title {
+                        entry.size = Some(t.get_size());
+                        parent_folder.sorted_by = None;
+
+                        break;
+                    }
+                }
+                t = parent_folder.clone();
+                p = parent_buf.to_path_buf();
+            } else {
+                break;
             }
         }
     }
