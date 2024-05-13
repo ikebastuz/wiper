@@ -37,26 +37,6 @@ pub struct App<S: DataStore<DataStoreKey>> {
     pub logger: Logger,
 }
 
-impl<S: DataStore<DataStoreKey>> Default for App<S> {
-    fn default() -> Self {
-        Self {
-            running: true,
-            time: 0,
-            ui_config: UIConfig {
-                colored: true,
-                confirming_deletion: false,
-                sort_by: SortBy::Size,
-                move_to_trash: true,
-                open_file: true,
-                debug_enabled: false,
-            },
-            task_manager: TaskManager::<S>::new(),
-            store: S::new(),
-            logger: Logger::new(),
-        }
-    }
-}
-
 impl<S: DataStore<DataStoreKey>> App<S> {
     /// Constructs a new instance of [`App`].
     pub fn new(config: InitConfig) -> Self {
@@ -74,7 +54,22 @@ impl<S: DataStore<DataStoreKey>> App<S> {
             None => env::current_dir().unwrap(),
         };
 
-        let mut app = App { ..Self::default() };
+        let mut app = App {
+            running: true,
+            time: 0,
+            ui_config: UIConfig {
+                colored: true,
+                confirming_deletion: false,
+                sort_by: SortBy::Size,
+                move_to_trash: true,
+                open_file: true,
+                debug_enabled: false,
+            },
+            task_manager: TaskManager::<S>::new(),
+            store: S::new(),
+            logger: Logger::new(),
+        };
+
         app.store.set_current_path(&current_path);
 
         app
