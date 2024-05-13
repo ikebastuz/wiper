@@ -1,16 +1,15 @@
 use opener;
 use std::error;
 
-use crate::fs::{
-    delete_file, delete_folder, path_buf_to_string, path_to_folder, DataStore, Folder,
-    FolderEntryType, SortBy,
-};
+use crate::fs::{delete_file, delete_folder, path_to_folder, DataStore, FolderEntryType, SortBy};
 use crate::task_manager::TaskManager;
+use std::path::PathBuf;
 use std::time::SystemTime;
-use std::{collections::HashMap, path::PathBuf};
 
 use crate::config::{InitConfig, UIConfig};
 use std::env;
+
+use crate::logger::Logger;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -18,8 +17,6 @@ pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 enum DiffKind {
     Subtract,
 }
-
-pub type FileTreeMap = HashMap<String, Folder>;
 
 /// Application.
 #[derive(Debug)]
@@ -30,8 +27,12 @@ pub struct App<S: DataStore> {
     pub running: bool,
     /// Current timestamp (for debugging) - remove later
     pub time: u128,
+    /// Task manager for async jobs
     pub task_manager: TaskManager<S>,
+    /// Store for filesystem data
     pub store: S,
+    /// Debug logger
+    pub logger: Logger,
 }
 
 impl<S: DataStore> Default for App<S> {
@@ -49,6 +50,7 @@ impl<S: DataStore> Default for App<S> {
             },
             task_manager: TaskManager::<S>::new(),
             store: S::new(),
+            logger: Logger::new(),
         }
     }
 }
@@ -284,13 +286,5 @@ impl<S: DataStore> App<S> {
 
     pub fn pre_render(&mut self) {
         self.sort_current_folder();
-    }
-}
-
-pub fn get_entry_size(file_tree_map: &FileTreeMap, path: &PathBuf) -> Option<u64> {
-    if let Some(entry) = file_tree_map.get(&path_buf_to_string(&path.clone())) {
-        Some(entry.get_size())
-    } else {
-        None
     }
 }

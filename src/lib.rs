@@ -18,3 +18,6 @@ pub mod fs;
 
 /// Task queue manager
 pub mod task_manager;
+
+/// Debug logger
+pub mod logger;

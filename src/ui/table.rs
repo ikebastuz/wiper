@@ -1,6 +1,8 @@
 use crate::config::UIConfig;
 use crate::fs::Folder;
 use crate::fs::SortBy;
+use crate::logger::Logger;
+use crate::logger::MessageLevel;
 use ratatui::{prelude::*, widgets::*};
 
 use crate::ui::constants::{
@@ -14,7 +16,16 @@ pub fn render_table(
     buf: &mut Buffer,
     maybe_folder: Option<&Folder>,
     config: &UIConfig,
+    logger: &Logger,
 ) {
+    let horizontal_layout_schema = match config.debug_enabled {
+        true => [Constraint::Min(1), Constraint::Min(1)],
+        false => [Constraint::Min(1), Constraint::Max(0)],
+    };
+
+    let horizontal_layout = Layout::horizontal(horizontal_layout_schema);
+    let [left_col, right_col] = horizontal_layout.areas(area);
+
     if let Some(folder) = maybe_folder {
         let block = Block::default()
             .borders(Borders::ALL)
@@ -59,9 +70,28 @@ pub fn render_table(
 
         StatefulWidget::render(
             table,
-            area,
+            left_col,
             buf,
             &mut TableState::default().with_selected(Some(folder.cursor_index)),
         );
+    }
+
+    if config.debug_enabled {
+        let items: Vec<ListItem> = logger
+            .messages
+            .iter()
+            .enumerate()
+            .map(|(_i, (level, message))| {
+                let style = Style::default();
+                let style = match level {
+                    MessageLevel::Info => style.fg(TEXT_COLOR),
+                    MessageLevel::Error => style.fg(TEXT_PRE_DELETED_BG),
+                };
+                ListItem::from(message.clone()).style(style)
+            })
+            .collect();
+
+        let items = List::new(items);
+        StatefulWidget::render(items, right_col, buf, &mut ListState::default());
     }
 }

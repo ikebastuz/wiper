@@ -31,7 +31,7 @@ impl<S: DataStore> Widget for &mut App<S> {
         };
 
         render_title(header_area, buf, maybe_folder, &self.ui_config, &debug);
-        render_table(rest_area, buf, maybe_folder, &self.ui_config);
+        render_table(rest_area, buf, maybe_folder, &self.ui_config, &self.logger);
         render_footer(footer_area, buf);
     }
 }
