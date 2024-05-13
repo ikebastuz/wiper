@@ -1,6 +1,6 @@
 use wiper::app::App;
 use wiper::config::InitConfig;
-use wiper::fs::{DataStore, Folder, FolderEntry, FolderEntryType};
+use wiper::fs::{DataStore, Folder, FolderEntry, FolderEntryType, SortBy};
 
 pub const TEST_FILE_PATH_VIEW: &str = "./tests/test_files/view";
 pub const TEST_FILE_PATH_EDIT: &str = "./tests/test_files/edit";
@@ -9,8 +9,9 @@ pub fn setup_app_view<S: DataStore>() -> App<S> {
         file_path: Some(TEST_FILE_PATH_VIEW.to_string()),
     };
     let mut app: App<S> = App::new(c);
-    app.init();
     app.ui_config.open_file = false;
+    app.ui_config.sort_by = SortBy::Title;
+    app.init();
     app
 }
 
@@ -19,9 +20,10 @@ pub fn setup_app_edit<S: DataStore>() -> App<S> {
         file_path: Some(TEST_FILE_PATH_EDIT.to_string()),
     };
     let mut app: App<S> = App::new(c);
-    app.init();
     app.ui_config.open_file = false;
     app.ui_config.move_to_trash = false;
+    app.ui_config.sort_by = SortBy::Title;
+    app.init();
     app
 }
 

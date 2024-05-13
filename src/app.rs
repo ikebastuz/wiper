@@ -42,7 +42,7 @@ impl<S: DataStore> Default for App<S> {
             ui_config: UIConfig {
                 colored: true,
                 confirming_deletion: false,
-                sort_by: SortBy::Title,
+                sort_by: SortBy::Size,
                 move_to_trash: true,
                 open_file: true,
                 debug_enabled: false,
