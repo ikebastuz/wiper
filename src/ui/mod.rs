@@ -22,7 +22,7 @@ impl<S: DataStore> Widget for &mut App<S> {
         ]);
         let [header_area, rest_area, footer_area] = vertical.areas(area);
 
-        let maybe_folder = self.get_current_folder();
+        let maybe_folder = self.store.get_current_folder();
 
         let debug = DebugData {
             path_stack: self.task_manager.path_buf_stack.len(),

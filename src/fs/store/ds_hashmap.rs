@@ -19,16 +19,32 @@ impl DataStore for DSHashmap {
         }
     }
 
-    fn current_filepath(&self) -> String {
-        self.current_path.to_string_lossy().to_string()
+    fn get_current_path(&mut self) -> &PathBuf {
+        &self.current_path
     }
 
-    fn current_folder(&self) -> Option<&Folder> {
+    fn set_current_path(&mut self, path: &PathBuf) {
+        self.current_path = path.clone();
+    }
+
+    fn has_path(&self, path: &PathBuf) -> bool {
+        self.store.contains_key(path)
+    }
+
+    fn get_current_folder(&self) -> Option<&Folder> {
         self.store.get(&self.current_path)
     }
 
-    fn current_folder_mut(&mut self) -> Option<&mut Folder> {
+    fn get_current_folder_mut(&mut self) -> Option<&mut Folder> {
         self.store.get_mut(&self.current_path)
+    }
+
+    fn set_folder(&mut self, path: &PathBuf, folder: Folder) {
+        self.store.insert(path.clone(), folder);
+    }
+
+    fn get_folder_mut(&mut self, path: &PathBuf) -> Option<&mut Folder> {
+        self.store.get_mut(path)
     }
 
     fn set_current_folder(&mut self, folder: Folder) {
@@ -37,7 +53,7 @@ impl DataStore for DSHashmap {
 
     // TODO: refactor
     fn sort_current_folder(&mut self, sort_by: SortBy) {
-        if let Some(folder) = self.current_folder_mut() {
+        if let Some(folder) = self.get_current_folder_mut() {
             match &folder.sorted_by {
                 None => match sort_by {
                     SortBy::Title => folder.sort_by_title(),
@@ -57,25 +73,41 @@ impl DataStore for DSHashmap {
     }
 
     // TODO: Returns string that should be processed (sync)
-    fn move_to_parent(&mut self) -> Option<String> {
+    fn move_to_parent(&mut self) -> Option<PathBuf> {
         if let Some(parent) = &self.current_path.parent() {
             let parent_buf = parent.to_path_buf();
-            self.current_path = parent_buf;
+            self.current_path = parent_buf.clone();
 
-            Some(self.current_filepath())
+            Some(parent_buf)
         } else {
             None
         }
     }
 
     // TODO: Returns string that should be processed
-    fn move_to_child(&mut self, title: &String) -> String {
+    fn move_to_child(&mut self, title: &String) -> PathBuf {
         let mut new_path = PathBuf::from(&self.current_path);
         new_path.push(title);
-        self.current_path = new_path;
+        self.current_path = new_path.clone();
 
-        self.current_filepath()
+        new_path
     }
 
     fn delete_current_entry(&mut self) {}
+
+    fn get_entry_size(&mut self, path: &PathBuf) -> Option<u64> {
+        if let Some(entry) = self.store.get(path) {
+            Some(entry.get_size())
+        } else {
+            None
+        }
+    }
+
+    fn remove_path(&mut self, path: &PathBuf) {
+        self.store.remove(path);
+    }
+
+    fn get_nodes_len(&self) -> usize {
+        self.store.keys().len()
+    }
 }

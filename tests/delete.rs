@@ -198,7 +198,7 @@ mod delete {
         let mut app: App<DSHashmap> = setup_app_edit();
         await_for_tasks(&mut app).await;
 
-        let root_entry = app.get_current_folder().unwrap();
+        let root_entry = get_current_folder(&app).unwrap();
         assert_eq!(root_entry.get_size(), (TEST_FILE_SIZE * 9) as u64);
 
         app.on_cursor_down();
@@ -207,7 +207,7 @@ mod delete {
         app.on_delete();
         await_for_tasks(&mut app).await;
 
-        let root_entry_updated = app.get_current_folder().unwrap();
+        let root_entry_updated = get_current_folder(&app).unwrap();
         assert_eq!(root_entry_updated.get_size(), (TEST_FILE_SIZE * 8) as u64);
 
         cleanup_testing_files();
@@ -219,21 +219,21 @@ mod delete {
         let mut app: App<DSHashmap> = setup_app_edit();
         await_for_tasks(&mut app).await;
 
-        let root_entry = app.get_current_folder().unwrap();
+        let root_entry = get_current_folder(&app).unwrap();
         assert_eq!(root_entry.get_size(), (TEST_FILE_SIZE * 9) as u64);
 
         app.on_cursor_down();
         app.on_enter();
         await_for_tasks(&mut app).await;
 
-        let folder_1 = app.get_current_folder().unwrap();
+        let folder_1 = get_current_folder(&app).unwrap();
         assert_eq!(folder_1.get_size(), (TEST_FILE_SIZE * 6) as u64);
 
         app.on_cursor_down();
         app.on_enter();
         await_for_tasks(&mut app).await;
 
-        let folder_2 = app.get_current_folder().unwrap();
+        let folder_2 = get_current_folder(&app).unwrap();
         assert_eq!(folder_2.get_size(), (TEST_FILE_SIZE * 3) as u64);
 
         app.on_cursor_down();
@@ -242,7 +242,7 @@ mod delete {
         app.on_delete();
         await_for_tasks(&mut app).await;
 
-        let folder_2_upd = app.get_current_folder().unwrap();
+        let folder_2_upd = get_current_folder(&app).unwrap();
         assert_eq!(folder_2_upd.get_size(), (TEST_FILE_SIZE * 2) as u64);
 
         app.on_cursor_up();
@@ -250,7 +250,7 @@ mod delete {
         app.on_enter();
         await_for_tasks(&mut app).await;
 
-        let folder_1_upd = app.get_current_folder().unwrap();
+        let folder_1_upd = get_current_folder(&app).unwrap();
         assert_eq!(folder_1_upd.get_size(), (TEST_FILE_SIZE * 5) as u64);
         assert_eq!(
             folder_1_upd.get_selected_entry_size(),
@@ -261,7 +261,7 @@ mod delete {
         app.on_enter();
         await_for_tasks(&mut app).await;
 
-        let root_entry_upd = app.get_current_folder().unwrap();
+        let root_entry_upd = get_current_folder(&app).unwrap();
         assert_eq!(root_entry_upd.get_size(), (TEST_FILE_SIZE * 8) as u64);
         assert_eq!(
             root_entry_upd.get_selected_entry_size(),
@@ -277,14 +277,14 @@ mod delete {
         let mut app: App<DSHashmap> = setup_app_edit();
         await_for_tasks(&mut app).await;
 
-        let root_entry = app.get_current_folder().unwrap();
+        let root_entry = get_current_folder(&app).unwrap();
         assert_eq!(root_entry.get_size(), (TEST_FILE_SIZE * 9) as u64);
 
         app.on_cursor_down();
         app.on_enter();
         await_for_tasks(&mut app).await;
 
-        let folder_1 = app.get_current_folder().unwrap();
+        let folder_1 = get_current_folder(&app).unwrap();
         assert_eq!(folder_1.get_size(), (TEST_FILE_SIZE * 6) as u64);
 
         app.on_cursor_down();
@@ -292,14 +292,14 @@ mod delete {
         app.on_delete();
         await_for_tasks(&mut app).await;
 
-        let folder_1_upd = app.get_current_folder().unwrap();
+        let folder_1_upd = get_current_folder(&app).unwrap();
         assert_eq!(folder_1_upd.get_size(), (TEST_FILE_SIZE * 3) as u64);
 
         app.on_cursor_up();
         app.on_enter();
         await_for_tasks(&mut app).await;
 
-        let root_entry_upd = app.get_current_folder().unwrap();
+        let root_entry_upd = get_current_folder(&app).unwrap();
         assert_eq!(root_entry_upd.get_size(), (TEST_FILE_SIZE * 6) as u64);
         assert_eq!(
             root_entry_upd.get_selected_entry_size(),
@@ -319,11 +319,11 @@ mod delete {
             app.on_cursor_down();
         }
 
-        assert_eq!(app.get_current_folder().unwrap().cursor_index, 4);
+        assert_eq!(get_current_folder(&app).unwrap().cursor_index, 4);
         app.on_delete();
         app.on_delete();
         await_for_tasks(&mut app).await;
-        assert_eq!(app.get_current_folder().unwrap().cursor_index, 3);
+        assert_eq!(get_current_folder(&app).unwrap().cursor_index, 3);
 
         cleanup_testing_files();
     }

@@ -24,25 +24,19 @@ pub type FileTreeMap = HashMap<String, Folder>;
 /// Application.
 #[derive(Debug)]
 pub struct App<S: DataStore> {
-    /// Current file path buffer
-    pub current_path: PathBuf,
     /// Config to render UI
     pub ui_config: UIConfig,
-    /// Map for all folder file paths
-    pub file_tree_map: FileTreeMap,
     /// Is the application running?
     pub running: bool,
     /// Current timestamp (for debugging) - remove later
     pub time: u128,
-    pub task_manager: TaskManager,
+    pub task_manager: TaskManager<S>,
     pub store: S,
 }
 
 impl<S: DataStore> Default for App<S> {
     fn default() -> Self {
         Self {
-            current_path: PathBuf::from("."),
-            file_tree_map: HashMap::new(),
             running: true,
             time: 0,
             ui_config: UIConfig {
@@ -53,7 +47,7 @@ impl<S: DataStore> Default for App<S> {
                 open_file: true,
                 debug_enabled: false,
             },
-            task_manager: TaskManager::new(),
+            task_manager: TaskManager::<S>::new(),
             store: S::new(),
         }
     }
@@ -76,47 +70,40 @@ impl<S: DataStore> App<S> {
             None => env::current_dir().unwrap(),
         };
 
-        let app = App {
-            current_path,
-            ..Self::default()
-        };
+        let mut app = App { ..Self::default() };
+        app.store.set_current_path(&current_path);
 
         app
     }
 
     pub fn init(&mut self) {
-        self.task_manager
-            .maybe_add_task(&self.file_tree_map, &self.current_path.clone());
+        let path_buf = self.store.get_current_path().clone();
+        self.task_manager.maybe_add_task(&self.store, &path_buf);
     }
 
     // TODO: finish impl same as after receiving from worker thread (propagate up)
     fn process_filepath_sync(&mut self, path_buf: PathBuf) {
-        if !self
-            .file_tree_map
-            .contains_key(&path_buf.to_string_lossy().to_string())
-        {
+        if !self.store.has_path(&path_buf) {
             let mut folder = path_to_folder(path_buf.clone());
             for child_entry in folder.entries.iter_mut() {
                 if child_entry.kind == FolderEntryType::Folder {
                     let mut subfolder_path = path_buf.clone();
                     subfolder_path.push(&child_entry.title);
-                    child_entry.size = get_entry_size(&self.file_tree_map, &subfolder_path);
+                    child_entry.size = self.store.get_entry_size(&subfolder_path);
 
                     self.task_manager
-                        .maybe_add_task(&self.file_tree_map, &subfolder_path);
+                        .maybe_add_task(&self.store, &subfolder_path);
                 }
             }
 
-            self.file_tree_map
-                .insert(path_buf_to_string(&path_buf), folder.clone());
+            self.store.set_folder(&path_buf, folder);
         }
     }
 
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
         self.task_manager.process_next_batch();
-        self.task_manager
-            .read_receiver_stack(&mut self.file_tree_map);
+        self.task_manager.read_receiver_stack(&mut self.store);
 
         match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
             Ok(duration) => self.time = duration.as_millis(),
@@ -127,16 +114,6 @@ impl<S: DataStore> App<S> {
     /// Set running to false to quit the application.
     pub fn quit(&mut self) {
         self.running = false;
-    }
-
-    // MIGRATE: DONE
-    fn get_current_path_string(&self) -> String {
-        self.current_path.to_string_lossy().to_string()
-    }
-
-    // MIGRATE: DONE
-    pub fn get_current_folder(&self) -> Option<&Folder> {
-        self.file_tree_map.get(&self.get_current_path_string())
     }
 
     pub fn on_toggle_coloring(&mut self) {
@@ -154,33 +131,9 @@ impl<S: DataStore> App<S> {
         }
     }
 
-    // TODO: refactor
-    // MIGRATE: DONE
     fn sort_current_folder(&mut self) {
-        let app_sort_by = self.ui_config.sort_by.clone();
-        if let Some(folder) = self.get_current_folder_v2() {
-            match &folder.sorted_by {
-                None => match app_sort_by {
-                    SortBy::Title => folder.sort_by_title(),
-                    SortBy::Size => folder.sort_by_size(),
-                },
-                Some(folder_sort_by) => {
-                    if folder_sort_by.clone() != app_sort_by {
-                        match app_sort_by {
-                            SortBy::Title => folder.sort_by_title(),
-                            SortBy::Size => folder.sort_by_size(),
-                        };
-                    };
-                }
-            }
-            folder.sorted_by = Some(app_sort_by);
-        }
-    }
-
-    // MIGRATE: DONE
-    fn set_current_folder(&mut self, folder: Folder) {
-        self.file_tree_map
-            .insert(self.get_current_path_string(), folder);
+        self.store
+            .sort_current_folder(self.ui_config.sort_by.clone());
     }
 
     // MIGRATE: DONE
@@ -188,13 +141,8 @@ impl<S: DataStore> App<S> {
         self.ui_config.move_to_trash = !self.ui_config.move_to_trash;
     }
 
-    // MIGRATE: DONE
-    pub fn get_current_folder_v2(&mut self) -> Option<&mut Folder> {
-        self.file_tree_map.get_mut(&self.get_current_path_string())
-    }
-
     pub fn on_cursor_up(&mut self) {
-        if let Some(folder) = self.get_current_folder_v2() {
+        if let Some(folder) = self.store.get_current_folder_mut() {
             if folder.cursor_index > 0 {
                 folder.cursor_index -= 1;
             }
@@ -203,7 +151,7 @@ impl<S: DataStore> App<S> {
     }
 
     pub fn on_cursor_down(&mut self) {
-        if let Some(folder) = self.get_current_folder_v2() {
+        if let Some(folder) = self.store.get_current_folder_mut() {
             if folder.cursor_index < folder.entries.len() - 1 {
                 folder.cursor_index += 1;
             }
@@ -213,21 +161,14 @@ impl<S: DataStore> App<S> {
 
     // MIGRATE: DONE
     fn navigate_to_parent(&mut self) {
-        if let Some(parent) = PathBuf::from(&self.current_path).parent() {
-            let parent_buf = parent.to_path_buf();
-            self.current_path = parent_buf.clone();
-            self.process_filepath_sync(parent_buf.clone());
+        if let Some(parent_path) = self.store.move_to_parent() {
+            self.process_filepath_sync(parent_path);
         }
     }
 
-    // TODO: process first entry sync (same as parent)
-    // MIGRATE: DONE
     fn navigate_to_child(&mut self, title: &String) {
-        let mut new_path = PathBuf::from(&self.current_path);
-        new_path.push(title);
-        self.current_path = new_path;
-        self.task_manager
-            .maybe_add_task(&self.file_tree_map, &self.current_path);
+        let child_path = self.store.move_to_child(title);
+        self.task_manager.maybe_add_task(&self.store, &child_path);
     }
 
     pub fn on_backspace(&mut self) {
@@ -235,7 +176,7 @@ impl<S: DataStore> App<S> {
     }
 
     pub fn on_enter(&mut self) {
-        if let Some(folder) = self.get_current_folder().cloned() {
+        if let Some(folder) = self.store.get_current_folder().cloned() {
             let entry = folder.get_selected_entry();
 
             match entry.kind {
@@ -247,7 +188,7 @@ impl<S: DataStore> App<S> {
                 }
                 FolderEntryType::File => {
                     if self.ui_config.open_file {
-                        let mut file_name = PathBuf::from(&self.current_path.clone());
+                        let mut file_name = self.store.get_current_path().clone();
                         file_name.push(entry.title.clone());
                         let _ = opener::open(file_name);
                     }
@@ -258,10 +199,10 @@ impl<S: DataStore> App<S> {
     }
 
     pub fn on_delete(&mut self) {
-        if let Some(mut folder) = self.get_current_folder().cloned() {
+        if let Some(mut folder) = self.store.get_current_folder().cloned() {
             let entry = folder.get_selected_entry();
 
-            let mut to_delete_path = PathBuf::from(&self.current_path);
+            let mut to_delete_path = PathBuf::from(&self.store.get_current_path());
             to_delete_path.push(&entry.title);
 
             match entry.kind {
@@ -279,9 +220,8 @@ impl<S: DataStore> App<S> {
                                 );
                             }
                             folder.remove_selected();
-                            let path_string = to_delete_path.to_string_lossy().into_owned();
-                            self.file_tree_map.remove(&path_string);
-                            self.set_current_folder(folder);
+                            self.store.remove_path(&to_delete_path);
+                            self.store.set_current_folder(folder.clone());
                             self.ui_config.confirming_deletion = false;
                         }
                     }
@@ -292,14 +232,15 @@ impl<S: DataStore> App<S> {
                     } else {
                         if let Ok(_) = delete_file(&to_delete_path, &self.ui_config) {
                             if let Some(subfile_size) = entry.size {
+                                let parent_folder = PathBuf::from(to_delete_path.parent().unwrap());
                                 self.propagate_size_update_upwards(
-                                    &to_delete_path,
+                                    &parent_folder,
                                     subfile_size,
                                     DiffKind::Subtract,
                                 );
                             }
                             folder.remove_selected();
-                            self.set_current_folder(folder);
+                            self.store.set_current_folder(folder.clone());
                             self.ui_config.confirming_deletion = false;
                         }
                     }
@@ -318,7 +259,7 @@ impl<S: DataStore> App<S> {
         // we need to re-sort folder
         let mut parent_path = to_delete_path.clone();
         while let Some(parent) = parent_path.parent() {
-            if let Some(parent_folder) = self.file_tree_map.get_mut(parent.to_str().unwrap()) {
+            if let Some(parent_folder) = self.store.get_folder_mut(&parent_path) {
                 if let Some(parent_folder_entry) =
                     parent_folder.entries.get_mut(parent_folder.cursor_index)
                 {
@@ -327,6 +268,7 @@ impl<S: DataStore> App<S> {
                             DiffKind::Subtract => *size -= entry_diff,
                         }
                     }
+                } else {
                 }
                 parent_folder.sorted_by = None;
                 parent_path = parent.to_path_buf();

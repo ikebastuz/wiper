@@ -7,6 +7,8 @@ use wiper::fs::FolderEntryType;
 
 mod file_tree {
 
+    use wiper::fs::DataStore;
+
     use super::*;
     #[tokio::test]
     async fn test_ordering_by_kind() {
@@ -92,8 +94,6 @@ mod file_tree {
         let mut app: App<DSHashmap> = setup_app_view();
         await_for_tasks(&mut app).await;
 
-        let file_tree = app.file_tree_map;
-
-        assert_eq!(file_tree.keys().len(), 4);
+        assert_eq!(app.store.get_nodes_len(), 4);
     }
 }

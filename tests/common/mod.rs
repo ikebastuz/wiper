@@ -1,6 +1,6 @@
 use wiper::app::App;
 use wiper::config::InitConfig;
-use wiper::fs::{DataStore, FolderEntry, FolderEntryType};
+use wiper::fs::{DataStore, Folder, FolderEntry, FolderEntryType};
 
 pub const TEST_FILE_PATH_VIEW: &str = "./tests/test_files/view";
 pub const TEST_FILE_PATH_EDIT: &str = "./tests/test_files/edit";
@@ -36,7 +36,8 @@ pub async fn await_for_tasks<S: DataStore>(app: &mut App<S>) {
 
 pub fn assert_item_at_index_is<S: DataStore>(app: &App<S>, index: usize, kind: FolderEntryType) {
     assert_eq!(
-        app.get_current_folder()
+        app.store
+            .get_current_folder()
             .unwrap()
             .entries
             .get(index)
@@ -48,7 +49,8 @@ pub fn assert_item_at_index_is<S: DataStore>(app: &App<S>, index: usize, kind: F
 
 pub fn assert_item_at_index_title<S: DataStore>(app: &App<S>, index: usize, title: String) {
     assert_eq!(
-        app.get_current_folder()
+        app.store
+            .get_current_folder()
             .unwrap()
             .entries
             .get(index)
@@ -59,7 +61,8 @@ pub fn assert_item_at_index_title<S: DataStore>(app: &App<S>, index: usize, titl
 }
 
 pub fn get_entry_by_kind<S: DataStore>(app: &App<S>, kind: FolderEntryType) -> Vec<FolderEntry> {
-    app.get_current_folder()
+    app.store
+        .get_current_folder()
         .unwrap()
         .entries
         .iter()
@@ -84,7 +87,7 @@ pub fn assert_delete_folder_state<S: DataStore>(app: &App<S>) {
 }
 
 pub fn assert_cursor_index<S: DataStore>(app: &App<S>, index: usize) {
-    assert_eq!(app.get_current_folder().unwrap().cursor_index, index);
+    assert_eq!(app.store.get_current_folder().unwrap().cursor_index, index);
 }
 
 pub fn assert_root_view_folder_sorted_by_title<S: DataStore>(app: &App<S>) {
@@ -105,4 +108,8 @@ pub fn assert_root_view_folder_sorted_by_size<S: DataStore>(app: &App<S>) {
     assert_item_at_index_title(&app, 4, "d_root_file.txt".to_string());
     assert_item_at_index_title(&app, 5, "a_root_file.txt".to_string());
     assert_item_at_index_title(&app, 6, "z_root_file.txt".to_string());
+}
+
+pub fn get_current_folder<S: DataStore>(app: &App<S>) -> Option<&Folder> {
+    app.store.get_current_folder()
 }

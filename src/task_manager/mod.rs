@@ -1,6 +1,6 @@
-use crate::app::{get_entry_size, FileTreeMap};
-use crate::fs::{path_buf_to_string, path_to_folder, Folder, FolderEntryType};
+use crate::fs::{path_to_folder, DataStore, Folder, FolderEntryType};
 use std::collections::VecDeque;
+use std::marker::PhantomData;
 use std::path::PathBuf;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::Receiver;
@@ -9,18 +9,20 @@ use tokio::sync::mpsc::Receiver;
 const THREAD_LIMIT: usize = 1000;
 
 #[derive(Debug)]
-pub struct TaskManager {
+pub struct TaskManager<S: DataStore> {
     /// Stack of file paths to process
     pub path_buf_stack: VecDeque<PathBuf>,
     /// Stack of receivers to accept processed path
     pub receiver_stack: Vec<Receiver<(PathBuf, Folder)>>,
+    _store: PhantomData<S>,
 }
 
-impl TaskManager {
+impl<S: DataStore> TaskManager<S> {
     pub fn new() -> Self {
-        TaskManager {
+        TaskManager::<S> {
             path_buf_stack: VecDeque::new(),
             receiver_stack: Vec::new(),
+            _store: PhantomData,
         }
     }
 
@@ -53,7 +55,7 @@ impl TaskManager {
         }
     }
 
-    pub fn read_receiver_stack(&mut self, file_tree_map: &mut FileTreeMap) {
+    pub fn read_receiver_stack(&mut self, store: &mut S) {
         let mut idx = 0;
         while idx < self.receiver_stack.len() {
             match self.receiver_stack[idx].try_recv() {
@@ -64,14 +66,13 @@ impl TaskManager {
                         if child_entry.kind == FolderEntryType::Folder {
                             let mut subfolder_path = path_buf.clone();
                             subfolder_path.push(&child_entry.title);
-                            child_entry.size = get_entry_size(file_tree_map, &subfolder_path);
+                            child_entry.size = store.get_entry_size(&subfolder_path);
                             folder.sorted_by = None;
 
-                            self.maybe_add_task(file_tree_map, &subfolder_path);
+                            self.maybe_add_task(&store, &subfolder_path)
                         }
                     }
-
-                    file_tree_map.insert(path_buf_to_string(&path_buf), folder.clone());
+                    store.set_folder(&path_buf, folder.clone());
 
                     let mut t = folder.clone();
                     let mut p = path_buf.clone();
@@ -81,7 +82,7 @@ impl TaskManager {
                             break;
                         }
                         if let Some(parent_folder) =
-                            file_tree_map.get_mut(parent_buf.to_str().unwrap())
+                            store.get_folder_mut(&PathBuf::from(parent_buf))
                         {
                             for entry in parent_folder.entries.iter_mut() {
                                 if entry.title == t.title {
@@ -108,12 +109,11 @@ impl TaskManager {
     }
 
     pub fn add_task(&mut self, path_buf: &PathBuf) {
-        self.path_buf_stack
-            .push_back(path_buf.to_path_buf().clone());
+        self.path_buf_stack.push_back(path_buf.clone());
     }
 
-    pub fn maybe_add_task(&mut self, file_tree: &FileTreeMap, path_buf: &PathBuf) {
-        if !file_tree.contains_key(&path_buf.to_string_lossy().to_string()) {
+    pub fn maybe_add_task(&mut self, store: &S, path_buf: &PathBuf) {
+        if !store.has_path(&path_buf) {
             self.add_task(path_buf);
         }
     }
