@@ -23,3 +23,5 @@ pub struct UIConfig {
     pub open_file: bool,
     pub debug_enabled: bool,
 }
+
+pub const EVENT_INTERVAL: u64 = 100;

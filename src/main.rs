@@ -5,6 +5,7 @@ use std::io;
 use std::process;
 use wiper::app::{App, AppResult};
 use wiper::config::InitConfig;
+use wiper::config::EVENT_INTERVAL;
 use wiper::events::{handle_key_events, Event, EventHandler};
 use wiper::fs::DSHashmap;
 use wiper::tui::Tui;
@@ -21,7 +22,7 @@ async fn main() -> AppResult<()> {
 
     let backend = CrosstermBackend::new(io::stderr());
     let terminal = Terminal::new(backend)?;
-    let events = EventHandler::new(100);
+    let events = EventHandler::new(EVENT_INTERVAL);
     let mut tui = Tui::new(terminal, events);
     tui.init()?;
 

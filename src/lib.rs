@@ -21,3 +21,6 @@ pub mod task_manager;
 
 /// Debug logger
 pub mod logger;
+
+/// FPS counter
+pub mod fps_counter;

@@ -1,10 +1,10 @@
 use opener;
 use std::error;
 
+use crate::fps_counter::FPSCounter;
 use crate::fs::{delete_file, delete_folder, DataStore, DataStoreKey, FolderEntryType, SortBy};
 use crate::task_manager::TaskManager;
 use std::path::PathBuf;
-use std::time::SystemTime;
 
 use crate::config::{InitConfig, UIConfig};
 use std::env;
@@ -25,14 +25,13 @@ pub struct App<S: DataStore<DataStoreKey>> {
     pub ui_config: UIConfig,
     /// Is the application running?
     pub running: bool,
-    /// Current timestamp (for debugging) - remove later
-    pub time: u128,
     /// Task manager for async jobs
     pub task_manager: TaskManager<S>,
     /// Store for filesystem data
     pub store: S,
     /// Debug logger
     pub logger: Logger,
+    pub fps_counter: FPSCounter,
 }
 
 impl<S: DataStore<DataStoreKey>> App<S> {
@@ -54,7 +53,6 @@ impl<S: DataStore<DataStoreKey>> App<S> {
 
         let mut app = App {
             running: true,
-            time: 0,
             ui_config: UIConfig {
                 colored: true,
                 confirming_deletion: false,
@@ -66,6 +64,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
             task_manager: TaskManager::<S>::new(),
             store: S::new(),
             logger: Logger::new(),
+            fps_counter: FPSCounter::new(),
         };
 
         app.store.set_current_path(&current_path);
@@ -84,11 +83,6 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     pub fn tick(&mut self) {
         self.task_manager.process_next_batch();
         self.task_manager.read_receiver_stack(&mut self.store);
-
-        match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-            Ok(duration) => self.time = duration.as_millis(),
-            Err(_) => panic!("SystemTime before UNIX EPOCH!"),
-        };
     }
 
     /// Set running to false to quit the application.

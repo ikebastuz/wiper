@@ -14,6 +14,7 @@ pub use title::render_title;
 impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         self.pre_render();
+        let fps = self.fps_counter.update();
 
         let vertical = Layout::vertical([
             Constraint::Length(2),
@@ -27,7 +28,9 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
         let debug = DebugData {
             path_stack: self.task_manager.path_buf_stack.len(),
             threads: self.task_manager.receiver_stack.len(),
-            time: self.time,
+            task_timer: &self.task_manager.task_timer,
+            fps: format!("{:.2}", fps),
+            skipped_frames: format!("{:.2}", self.fps_counter.skipped_frames),
         };
 
         render_title(header_area, buf, maybe_folder, &self.ui_config);

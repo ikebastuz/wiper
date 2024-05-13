@@ -3,6 +3,7 @@ use crate::fs::Folder;
 use crate::fs::SortBy;
 use crate::logger::Logger;
 use crate::logger::MessageLevel;
+use crate::task_manager::TaskTimer;
 use ratatui::{prelude::*, widgets::*};
 
 use crate::ui::constants::{
@@ -12,10 +13,12 @@ use crate::ui::constants::{
 use crate::ui::utils::folder_to_rows;
 
 #[derive(Debug)]
-pub struct DebugData {
+pub struct DebugData<'a> {
     pub path_stack: usize,
     pub threads: usize,
-    pub time: u128,
+    pub task_timer: &'a TaskTimer,
+    pub fps: String,
+    pub skipped_frames: String,
 }
 
 pub fn render_content(
@@ -104,12 +107,24 @@ pub fn render_debug_panel(area: Rect, buf: &mut Buffer, logger: &Logger, debug_d
     let [top, bottom] =
         Layout::vertical([Constraint::Max(5), Constraint::Fill(1)]).areas(outer_block);
 
+    let time_taken = debug_data
+        .task_timer
+        .start
+        .and_then(|start| {
+            debug_data
+                .task_timer
+                .finish
+                .map(|finish| (finish - start).to_string())
+        })
+        .unwrap_or_else(|| "N/A".to_string());
+
     let debug_text = Text::from(format!(
-        "Time: {} | Logs: {}\nStack -> {} <-> {} <- Threads",
-        debug_data.time,
-        logger.messages.len(),
+        "Stack -> {} <-> {} <- Threads\nDone in: {}\nFPS: {} | Skipped: {}",
         debug_data.path_stack,
-        debug_data.threads
+        debug_data.threads,
+        time_taken,
+        debug_data.fps,
+        debug_data.skipped_frames
     ));
 
     Paragraph::new(debug_text).left_aligned().render(top, buf);
