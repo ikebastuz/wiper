@@ -2,6 +2,8 @@ use crate::fs::{DataStore, Folder, SortBy};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use super::DataStoreKey;
+
 pub type FileTreeMap = HashMap<PathBuf, Folder>;
 
 pub struct DSHashmap {
@@ -11,7 +13,7 @@ pub struct DSHashmap {
     pub store: FileTreeMap,
 }
 
-impl DataStore<PathBuf> for DSHashmap {
+impl DataStore<DataStoreKey> for DSHashmap {
     fn new() -> DSHashmap {
         DSHashmap {
             current_path: PathBuf::from("."),

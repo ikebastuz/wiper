@@ -1,7 +1,9 @@
 use opener;
 use std::error;
 
-use crate::fs::{delete_file, delete_folder, path_to_folder, DataStore, FolderEntryType, SortBy};
+use crate::fs::{
+    delete_file, delete_folder, path_to_folder, DataStore, DataStoreKey, FolderEntryType, SortBy,
+};
 use crate::task_manager::TaskManager;
 use std::path::PathBuf;
 use std::time::SystemTime;
@@ -20,7 +22,7 @@ enum DiffKind {
 
 /// Application.
 #[derive(Debug)]
-pub struct App<S: DataStore<PathBuf>> {
+pub struct App<S: DataStore<DataStoreKey>> {
     /// Config to render UI
     pub ui_config: UIConfig,
     /// Is the application running?
@@ -35,7 +37,7 @@ pub struct App<S: DataStore<PathBuf>> {
     pub logger: Logger,
 }
 
-impl<S: DataStore<PathBuf>> Default for App<S> {
+impl<S: DataStore<DataStoreKey>> Default for App<S> {
     fn default() -> Self {
         Self {
             running: true,
@@ -55,7 +57,7 @@ impl<S: DataStore<PathBuf>> Default for App<S> {
     }
 }
 
-impl<S: DataStore<PathBuf>> App<S> {
+impl<S: DataStore<DataStoreKey>> App<S> {
     /// Constructs a new instance of [`App`].
     pub fn new(config: InitConfig) -> Self {
         let current_path = match config.file_path {

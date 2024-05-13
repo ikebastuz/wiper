@@ -2,6 +2,7 @@ mod ds_hashmap;
 pub use ds_hashmap::DSHashmap;
 
 use crate::fs::{Folder, SortBy};
+use std::path::PathBuf;
 
 pub trait DataStore<T> {
     fn new() -> Self;
@@ -48,3 +49,5 @@ pub trait DataStore<T> {
     /// Get amount of processed file paths
     fn get_nodes_len(&self) -> usize;
 }
+
+pub type DataStoreKey = PathBuf;

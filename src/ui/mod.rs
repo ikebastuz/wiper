@@ -1,7 +1,5 @@
-use std::path::PathBuf;
-
-use crate::app::App;
 use crate::fs::DataStore;
+use crate::{app::App, fs::DataStoreKey};
 use ratatui::prelude::*;
 
 pub mod constants;
@@ -13,7 +11,7 @@ pub use content::{render_content, DebugData};
 pub use footer::render_footer;
 pub use title::render_title;
 
-impl<S: DataStore<PathBuf>> Widget for &mut App<S> {
+impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         self.pre_render();
 

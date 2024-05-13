@@ -10,7 +10,7 @@ mod store;
 mod utils;
 pub use folder::Folder;
 pub use folder_entry::{FolderEntry, FolderEntryType};
-pub use store::{DSHashmap, DataStore};
+pub use store::{DSHashmap, DataStore, DataStoreKey};
 pub use utils::path_buf_to_string;
 
 #[derive(Debug, Clone, PartialEq)]

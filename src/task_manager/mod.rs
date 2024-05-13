@@ -1,4 +1,4 @@
-use crate::fs::{path_to_folder, DataStore, Folder, FolderEntryType};
+use crate::fs::{path_to_folder, DataStore, DataStoreKey, Folder, FolderEntryType};
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 use std::path::PathBuf;
@@ -9,7 +9,7 @@ use tokio::sync::mpsc::Receiver;
 const THREAD_LIMIT: usize = 1000;
 
 #[derive(Debug)]
-pub struct TaskManager<S: DataStore<PathBuf>> {
+pub struct TaskManager<S: DataStore<DataStoreKey>> {
     /// Stack of file paths to process
     pub path_buf_stack: VecDeque<PathBuf>,
     /// Stack of receivers to accept processed path
@@ -17,7 +17,7 @@ pub struct TaskManager<S: DataStore<PathBuf>> {
     _store: PhantomData<S>,
 }
 
-impl<S: DataStore<PathBuf>> TaskManager<S> {
+impl<S: DataStore<DataStoreKey>> TaskManager<S> {
     pub fn new() -> Self {
         TaskManager::<S> {
             path_buf_stack: VecDeque::new(),
