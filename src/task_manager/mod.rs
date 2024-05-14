@@ -1,14 +1,10 @@
 use crate::fs::{path_to_folder, DataStore, DataStoreKey, Folder, FolderEntryType};
-use crate::logger::{Logger, MessageLevel};
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 use std::path::PathBuf;
-use std::time::SystemTime;
-use tokio::sync::mpsc;
-use tokio::sync::mpsc::{Receiver, Sender};
-
-// TODO: Explore avoiding hardcoding amount of worker threads
-const THREAD_LIMIT: usize = 1000;
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 #[derive(Debug)]
 pub struct TaskTimer {
@@ -19,76 +15,75 @@ pub struct TaskTimer {
 #[derive(Debug)]
 pub struct TaskManager<S: DataStore<DataStoreKey>> {
     /// Stack of file paths to process
-    pub path_buf_stack: VecDeque<PathBuf>,
+    pub path_buf_stack: Arc<Mutex<VecDeque<PathBuf>>>,
     /// Single receiver to accept processed paths
     pub receiver: Receiver<(PathBuf, Folder)>,
     /// Sender associated with the single receiver
     pub sender: Sender<(PathBuf, Folder)>,
     /// Job execution timer
     pub task_timer: TaskTimer,
-    /// Amount of actively running worker threads
-    pub active_tasks: usize,
     _store: PhantomData<S>,
 }
 
 impl<S: DataStore<DataStoreKey>> TaskManager<S> {
     pub fn new() -> Self {
-        let (sender, receiver) = mpsc::channel(THREAD_LIMIT);
-        TaskManager::<S> {
-            path_buf_stack: VecDeque::new(),
+        let (sender, receiver) = mpsc::channel();
+        let path_buf_stack = Arc::new(Mutex::new(VecDeque::<PathBuf>::new()));
+
+        // Spawn a single background thread
+        let worker_stack = Arc::clone(&path_buf_stack);
+        let worker_sender = sender.clone();
+        thread::spawn(move || loop {
+            let task = {
+                let mut stack = worker_stack.lock().unwrap();
+                stack.pop_front()
+            };
+            if let Some(path_buf) = task {
+                let folder = path_to_folder(path_buf.clone());
+                let _ = worker_sender.send((path_buf, folder));
+            } else {
+                thread::sleep(std::time::Duration::from_millis(100));
+            }
+        });
+
+        TaskManager {
+            path_buf_stack,
             receiver,
             sender,
             task_timer: TaskTimer {
                 start: None,
                 finish: None,
             },
-            active_tasks: 0,
             _store: PhantomData,
         }
     }
 
-    pub fn is_done(&mut self) -> bool {
-        self.path_buf_stack.is_empty() && self.active_tasks == 0
+    pub fn add_task(&self, path_buf: &PathBuf) {
+        let mut stack = self.path_buf_stack.lock().unwrap();
+        stack.push_back(path_buf.to_path_buf());
     }
 
-    pub fn process_next_batch(&mut self, logger: &mut Logger) {
-        let free_threads = THREAD_LIMIT - self.active_tasks;
+    pub fn is_done(&self) -> bool {
+        let stack = self.path_buf_stack.lock().unwrap();
+        stack.is_empty()
+    }
 
-        if free_threads > 0 {
-            let new_tasks = free_threads.min(self.path_buf_stack.len());
-            if new_tasks > 0 {
-                // TODO: log only when debug is enabled
-                logger.log(
-                    format!("Spawning {} threads", new_tasks),
-                    MessageLevel::Info,
-                );
-            }
-            for _ in 0..new_tasks {
-                if let Some(pb) = self.path_buf_stack.pop_front() {
-                    let sender_clone = self.sender.clone();
-                    let path_buf_clone = pb.clone();
-                    self.active_tasks += 1;
-                    tokio::spawn(async move {
-                        let path_buf = path_buf_clone;
-                        let folder = path_to_folder(path_buf.clone());
-                        let _ = sender_clone.send((path_buf, folder)).await;
-                    });
+    pub fn maybe_add_task(&mut self, store: &S, path_buf: &PathBuf) {
+        if !store.has_path(&path_buf) {
+            self.add_task(path_buf);
+        }
+    }
+
+    pub fn handle_results(&mut self, store: &mut S) {
+        loop {
+            match self.receiver.try_recv() {
+                Ok((path_buf, folder)) => {
+                    self.process_entry(store, &path_buf, folder);
+                }
+                _ => {
+                    break;
                 }
             }
-        }
-    }
-
-    pub fn read_receiver_stack(&mut self, store: &mut S, logger: &mut Logger) {
-        if self.active_tasks > 0 {
-            // TODO: log only when debug is enabled
-            logger.log(
-                format!("Processing {} tasks", self.active_tasks),
-                MessageLevel::Info,
-            );
-        }
-        while let Ok((path_buf, folder)) = self.receiver.try_recv() {
-            self.active_tasks -= 1;
-            self.process_entry(store, &path_buf, folder);
         }
         self.maybe_stop_timer();
     }
@@ -129,47 +124,5 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
             }
         }
     }
-
-    pub fn add_task(&mut self, path_buf: &PathBuf) {
-        self.maybe_start_timer();
-        self.path_buf_stack.push_back(path_buf.clone());
-    }
-
-    pub fn maybe_add_task(&mut self, store: &S, path_buf: &PathBuf) {
-        if !store.has_path(&path_buf) {
-            self.add_task(path_buf);
-        }
-    }
-
-    fn maybe_start_timer(&mut self) {
-        match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-            Ok(duration) => {
-                if self.path_buf_stack.is_empty() && self.task_timer.start.is_none() {
-                    // Start is None - record start
-                    self.task_timer.start = Some(duration.as_millis());
-                } else {
-                    // Start is not None
-                    if self.task_timer.finish.is_some() {
-                        // Finish is not None - restart
-                        self.task_timer.start = Some(duration.as_millis());
-                        self.task_timer.finish = None;
-                    }
-                }
-            }
-            _ => {}
-        };
-    }
-
-    fn maybe_stop_timer(&mut self) {
-        match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-            Ok(duration) => {
-                if self.path_buf_stack.is_empty() && self.active_tasks == 0 {
-                    if self.task_timer.start.is_some() && self.task_timer.finish.is_none() {
-                        self.task_timer.finish = Some(duration.as_millis());
-                    }
-                }
-            }
-            _ => {}
-        };
-    }
+    fn maybe_stop_timer(&mut self) {}
 }
