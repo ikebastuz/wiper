@@ -10,8 +10,7 @@ use wiper::events::{handle_key_events, Event, EventHandler};
 use wiper::fs::DSHashmap;
 use wiper::tui::Tui;
 
-#[tokio::main]
-async fn main() -> AppResult<()> {
+fn main() -> AppResult<()> {
     let config = InitConfig::build(env::args()).unwrap_or_else(|err| {
         eprintln!("Problem parsing arguments: {err}");
         process::exit(1);
@@ -28,9 +27,9 @@ async fn main() -> AppResult<()> {
 
     while app.running {
         tui.draw(&mut app)?;
-        match tui.events.next().await? {
+        match tui.events.next()? {
             Event::Tick => app.tick(),
-            Event::Key(key_event) => handle_key_events(key_event, &mut app).await?,
+            Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
             Event::Mouse(_) => {}
             Event::Resize(_, _) => {}
         }

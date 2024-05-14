@@ -20,7 +20,7 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
         let vertical = Layout::vertical([
             Constraint::Length(2),
             Constraint::Fill(1),
-            Constraint::Length(3),
+            Constraint::Length(4),
         ]);
 
         let block = Block::default()
@@ -39,8 +39,8 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
         let maybe_folder = self.store.get_current_folder();
 
         let debug = DebugData {
-            path_stack: self.task_manager.path_buf_stack.len(),
-            threads: self.task_manager.active_tasks,
+            path_stack: self.task_manager.path_buf_stack.lock().unwrap().len(),
+            threads: *self.task_manager.running_tasks.lock().unwrap(),
             task_timer: &self.task_manager.task_timer,
             fps: format!("{:.1}", fps),
             skipped_frames: format!("{:.1}", self.fps_counter.skipped_frames),

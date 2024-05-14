@@ -2,7 +2,7 @@ use crate::app::{App, AppResult};
 use crate::fs::{DataStore, DataStoreKey};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-pub async fn handle_key_events<S: DataStore<DataStoreKey>>(
+pub fn handle_key_events<S: DataStore<DataStoreKey>>(
     key_event: KeyEvent,
     app: &mut App<S>,
 ) -> AppResult<()> {

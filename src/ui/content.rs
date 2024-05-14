@@ -5,7 +5,7 @@ use crate::logger::Logger;
 use crate::logger::MessageLevel;
 use crate::task_manager::TaskTimer;
 use ratatui::{prelude::*, widgets::*};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::ui::constants::{
     NORMAL_ROW_COLOR, TABLE_HEADER_BG, TABLE_HEADER_FG, TABLE_SPACE_WIDTH, TEXT_COLOR,

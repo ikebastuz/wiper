@@ -8,6 +8,9 @@
 - [x] - Open file with system app
 - [x] - Debug slow parent navigation
 - [ ] - Check folder permissions
+- [ ] - Show loading folder indicator if it is not calculated completely
+- [ ] - File extension chart
+
 
 #### Non-functional
 - [ ] - Configure clippy

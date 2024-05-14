@@ -1,13 +1,11 @@
 mod handler;
 
 pub use handler::handle_key_events;
-use std::time::Duration;
 
 use crossterm::event::{Event as CrosstermEvent, KeyEvent, MouseEvent};
-use futures::{FutureExt, StreamExt};
-use tokio::sync::mpsc;
-
-use crate::app::AppResult;
+use std::sync::mpsc::{self, Receiver};
+use std::thread;
+use std::time::{Duration, Instant};
 
 /// Terminal events.
 #[derive(Clone, Copy, Debug)]
@@ -22,79 +20,50 @@ pub enum Event {
     Resize(u16, u16),
 }
 
-/// Terminal event handler.
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct EventHandler {
-    /// Event sender channel.
-    sender: mpsc::UnboundedSender<Event>,
-    /// Event receiver channel.
-    receiver: mpsc::UnboundedReceiver<Event>,
-    /// Event handler thread.
-    handler: tokio::task::JoinHandle<()>,
+    receiver: Receiver<Event>,
 }
 
 impl EventHandler {
-    /// Constructs a new instance of [`EventHandler`].
     pub fn new(tick_rate: u64) -> Self {
         let tick_rate = Duration::from_millis(tick_rate);
-        let (sender, receiver) = mpsc::unbounded_channel();
-        let _sender = sender.clone();
-        let handler = tokio::spawn(async move {
-            let mut reader = crossterm::event::EventStream::new();
-            let mut tick = tokio::time::interval(tick_rate);
+        let (sender, receiver) = mpsc::channel();
+        let sender_clone = sender.clone();
+
+        thread::spawn(move || {
+            let mut last_tick = Instant::now();
             loop {
-                let tick_delay = tick.tick();
-                let crossterm_event = reader.next().fuse();
-                tokio::select! {
-                  _ = _sender.closed() => {
-                    break;
-                  }
-                  _ = tick_delay => {
-                    _sender.send(Event::Tick).unwrap();
-                  }
-                  Some(Ok(evt)) = crossterm_event => {
-                    match evt {
-                      CrosstermEvent::Key(key) => {
-                        if key.kind == crossterm::event::KeyEventKind::Press {
-                          _sender.send(Event::Key(key)).unwrap();
-                        }
-                      },
-                      CrosstermEvent::Mouse(mouse) => {
-                        _sender.send(Event::Mouse(mouse)).unwrap();
-                      },
-                      CrosstermEvent::Resize(x, y) => {
-                        _sender.send(Event::Resize(x, y)).unwrap();
-                      },
-                      CrosstermEvent::FocusLost => {
-                      },
-                      CrosstermEvent::FocusGained => {
-                      },
-                      CrosstermEvent::Paste(_) => {
-                      },
+                if last_tick.elapsed() >= tick_rate {
+                    if sender_clone.send(Event::Tick).is_err() {
+                        break; // Exit if the receiver has dropped
                     }
-                  }
-                };
+                    last_tick = Instant::now();
+                }
+                if crossterm::event::poll(Duration::from_millis(1)).unwrap() {
+                    if let Ok(crossterm_event) = crossterm::event::read() {
+                        match crossterm_event {
+                            CrosstermEvent::Key(key) => {
+                                let _ = sender_clone.send(Event::Key(key));
+                            }
+                            CrosstermEvent::Mouse(mouse) => {
+                                let _ = sender_clone.send(Event::Mouse(mouse));
+                            }
+                            CrosstermEvent::Resize(x, y) => {
+                                let _ = sender_clone.send(Event::Resize(x, y));
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                thread::sleep(Duration::from_millis(10));
             }
         });
-        Self {
-            sender,
-            receiver,
-            handler,
-        }
+
+        Self { receiver }
     }
 
-    /// Receive the next event from the handler thread.
-    ///
-    /// This function will always block the current thread if
-    /// there is no data available and it's possible for more data to be sent.
-    pub async fn next(&mut self) -> AppResult<Event> {
-        self.receiver
-            .recv()
-            .await
-            .ok_or(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "This is an IO error",
-            )))
+    pub fn next(&self) -> Result<Event, mpsc::RecvError> {
+        self.receiver.recv()
     }
 }
