@@ -40,7 +40,7 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
 
         let debug = DebugData {
             path_stack: self.task_manager.path_buf_stack.len(),
-            threads: self.task_manager.receiver_stack.len(),
+            threads: self.task_manager.active_tasks,
             task_timer: &self.task_manager.task_timer,
             fps: format!("{:.1}", fps),
             skipped_frames: format!("{:.1}", self.fps_counter.skipped_frames),

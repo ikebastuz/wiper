@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use std::path::PathBuf;
 use std::time::SystemTime;
 use tokio::sync::mpsc;
-use tokio::sync::mpsc::Receiver;
+use tokio::sync::mpsc::{Receiver, Sender};
 
 // TODO: Explore avoiding hardcoding amount of worker threads
 const THREAD_LIMIT: usize = 1000;
@@ -20,32 +20,39 @@ pub struct TaskTimer {
 pub struct TaskManager<S: DataStore<DataStoreKey>> {
     /// Stack of file paths to process
     pub path_buf_stack: VecDeque<PathBuf>,
-    /// Stack of receivers to accept processed path
-    pub receiver_stack: Vec<Receiver<(PathBuf, Folder)>>,
+    /// Single receiver to accept processed paths
+    pub receiver: Receiver<(PathBuf, Folder)>,
+    /// Sender associated with the single receiver
+    pub sender: Sender<(PathBuf, Folder)>,
     /// Job execution timer
     pub task_timer: TaskTimer,
+    /// Amount of actively running worker threads
+    pub active_tasks: usize,
     _store: PhantomData<S>,
 }
 
 impl<S: DataStore<DataStoreKey>> TaskManager<S> {
     pub fn new() -> Self {
+        let (sender, receiver) = mpsc::channel(THREAD_LIMIT);
         TaskManager::<S> {
             path_buf_stack: VecDeque::new(),
-            receiver_stack: Vec::new(),
+            receiver,
+            sender,
             task_timer: TaskTimer {
                 start: None,
                 finish: None,
             },
+            active_tasks: 0,
             _store: PhantomData,
         }
     }
 
     pub fn is_done(&mut self) -> bool {
-        self.receiver_stack.len() == 0 && self.path_buf_stack.len() == 0
+        self.path_buf_stack.is_empty() && self.active_tasks == 0
     }
 
     pub fn process_next_batch(&mut self, logger: &mut Logger) {
-        let free_threads = THREAD_LIMIT - self.receiver_stack.len();
+        let free_threads = THREAD_LIMIT - self.active_tasks;
 
         if free_threads > 0 {
             let new_tasks = free_threads.min(self.path_buf_stack.len());
@@ -57,48 +64,31 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                 );
             }
             for _ in 0..new_tasks {
-                match self.path_buf_stack.pop_front() {
-                    Some(pb) => {
-                        let (sender, receiver) = mpsc::channel(1);
-                        let path_buf_clone = pb.clone();
-
-                        tokio::spawn(async move {
-                            let path_buf = path_buf_clone;
-                            let folder = path_to_folder(path_buf.clone());
-                            let _ = sender.send((path_buf, folder)).await;
-                        });
-
-                        self.receiver_stack.push(receiver);
-                    }
-                    None => {}
+                if let Some(pb) = self.path_buf_stack.pop_front() {
+                    let sender_clone = self.sender.clone();
+                    let path_buf_clone = pb.clone();
+                    self.active_tasks += 1;
+                    tokio::spawn(async move {
+                        let path_buf = path_buf_clone;
+                        let folder = path_to_folder(path_buf.clone());
+                        let _ = sender_clone.send((path_buf, folder)).await;
+                    });
                 }
             }
         }
     }
 
     pub fn read_receiver_stack(&mut self, store: &mut S, logger: &mut Logger) {
-        let mut idx = 0;
-
-        let stack_size = self.receiver_stack.len();
-        if stack_size > 0 {
+        if self.active_tasks > 0 {
             // TODO: log only when debug is enabled
             logger.log(
-                format!("Processing {} stack", stack_size),
+                format!("Processing {} tasks", self.active_tasks),
                 MessageLevel::Info,
             );
         }
-        while idx < self.receiver_stack.len() {
-            match self.receiver_stack[idx].try_recv() {
-                Ok(result) => {
-                    let (path_buf, folder) = result;
-                    self.process_entry(store, &path_buf, folder);
-                    // TODO: probably unsafe
-                    self.receiver_stack.remove(idx);
-                }
-                Err(_) => {
-                    idx += 1;
-                }
-            }
+        while let Ok((path_buf, folder)) = self.receiver.try_recv() {
+            self.active_tasks -= 1;
+            self.process_entry(store, &path_buf, folder);
         }
         self.maybe_stop_timer();
     }
@@ -154,7 +144,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
     fn maybe_start_timer(&mut self) {
         match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
             Ok(duration) => {
-                if self.path_buf_stack.len() == 0 && self.task_timer.start.is_none() {
+                if self.path_buf_stack.is_empty() && self.task_timer.start.is_none() {
                     // Start is None - record start
                     self.task_timer.start = Some(duration.as_millis());
                 } else {
@@ -173,7 +163,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
     fn maybe_stop_timer(&mut self) {
         match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
             Ok(duration) => {
-                if self.path_buf_stack.len() == 0 && self.receiver_stack.len() == 0 {
+                if self.path_buf_stack.is_empty() && self.active_tasks == 0 {
                     if self.task_timer.start.is_some() && self.task_timer.finish.is_none() {
                         self.task_timer.finish = Some(duration.as_millis());
                     }
