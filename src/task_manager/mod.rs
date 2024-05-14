@@ -1,4 +1,5 @@
 use crate::fs::{path_to_folder, DataStore, DataStoreKey, Folder, FolderEntryType};
+use crate::logger::{Logger, MessageLevel};
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 use std::path::PathBuf;
@@ -43,11 +44,17 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         self.receiver_stack.len() == 0 && self.path_buf_stack.len() == 0
     }
 
-    pub fn process_next_batch(&mut self) {
+    pub fn process_next_batch(&mut self, logger: &mut Logger) {
         let free_threads = THREAD_LIMIT - self.receiver_stack.len();
 
         if free_threads > 0 {
             let new_tasks = free_threads.min(self.path_buf_stack.len());
+            if new_tasks > 0 {
+                logger.log(
+                    format!("Spawning {} threads", new_tasks),
+                    MessageLevel::Info,
+                );
+            }
             for _ in 0..new_tasks {
                 match self.path_buf_stack.pop_front() {
                     Some(pb) => {
@@ -68,8 +75,16 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         }
     }
 
-    pub fn read_receiver_stack(&mut self, store: &mut S) {
+    pub fn read_receiver_stack(&mut self, store: &mut S, logger: &mut Logger) {
         let mut idx = 0;
+
+        let stack_size = self.receiver_stack.len();
+        if stack_size > 0 {
+            logger.log(
+                format!("Processing {} stack", stack_size),
+                MessageLevel::Info,
+            );
+        }
         while idx < self.receiver_stack.len() {
             match self.receiver_stack[idx].try_recv() {
                 Ok(result) => {

@@ -81,8 +81,9 @@ impl<S: DataStore<DataStoreKey>> App<S> {
 
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
-        self.task_manager.process_next_batch();
-        self.task_manager.read_receiver_stack(&mut self.store);
+        self.task_manager.process_next_batch(&mut self.logger);
+        self.task_manager
+            .read_receiver_stack(&mut self.store, &mut self.logger);
     }
 
     /// Set running to false to quit the application.

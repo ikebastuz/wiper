@@ -24,6 +24,10 @@ impl Logger {
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
             .as_millis();
+
+        if self.messages.len() >= 10 {
+            self.messages.pop_back();
+        }
         self.messages.push_front((timestamp, level, message));
     }
 }
