@@ -44,8 +44,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                     path_buf
                 } else {
                     let current_dir = env::current_dir().unwrap();
-                    let abs_path = current_dir.join(&path_buf);
-                    abs_path
+                    current_dir.join(&path_buf)
                 }
             }
             None => env::current_dir().unwrap(),
@@ -145,7 +144,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         }
     }
 
-    fn navigate_to_child(&mut self, title: &String) {
+    fn navigate_to_child(&mut self, title: &str) {
         let child_path = self.store.move_to_child(title);
         self.logger
             .log(child_path.to_string_lossy().to_string(), MessageLevel::Info);
@@ -192,7 +191,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                     if !self.ui_config.confirming_deletion {
                         self.ui_config.confirming_deletion = true;
                     } else {
-                        if let Ok(_) = delete_folder(&to_delete_path, &self.ui_config) {
+                        if delete_folder(&to_delete_path, &self.ui_config).is_ok() {
                             if let Some(subfolder_size) = entry.size {
                                 self.propagate_size_update_upwards(
                                     &to_delete_path,
@@ -211,7 +210,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                     if !self.ui_config.confirming_deletion {
                         self.ui_config.confirming_deletion = true;
                     } else {
-                        if let Ok(_) = delete_file(&to_delete_path, &self.ui_config) {
+                        if delete_file(&to_delete_path, &self.ui_config).is_ok() {
                             if let Some(subfile_size) = entry.size {
                                 let parent_folder = PathBuf::from(to_delete_path.parent().unwrap());
                                 self.propagate_size_update_upwards(

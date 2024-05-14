@@ -74,7 +74,7 @@ pub fn render_table(area: Rect, buf: &mut Buffer, folder: &Folder, config: &UICo
         .style(header_style)
         .height(1);
 
-    let rows = folder_to_rows(&folder, &config);
+    let rows = folder_to_rows(folder, config);
 
     let table = Table::new(
         rows,

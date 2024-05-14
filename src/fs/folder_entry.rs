@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-#[derive(Debug, Clone, PartialEq, PartialOrd, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FolderEntryType {
     Parent,
     File,
@@ -18,6 +18,12 @@ impl Ord for FolderEntryType {
             (FolderEntryType::File, FolderEntryType::Folder) => Ordering::Greater,
             (FolderEntryType::File, FolderEntryType::File) => Ordering::Equal,
         }
+    }
+}
+
+impl PartialOrd for FolderEntryType {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
