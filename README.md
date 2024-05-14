@@ -26,6 +26,7 @@
 - [ ] - Improve MPSC messaging (make single receiver)
 - [ ] - Review all variable clones, optimize
 - [ ] - Check Mutex locks for performance improvements
+- [ ] - Consider having threadpool instead of single extra thread
 
 ## Scripts
 #### Run
