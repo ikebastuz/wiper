@@ -61,53 +61,53 @@ mod delete {
         }
     }
 
-    #[tokio::test]
-    async fn has_correct_initial_state() {
+    #[test]
+    fn has_correct_initial_state() {
         create_testing_files();
         let mut app: App<DSHashmap> = setup_app_edit();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         assert_delete_folder_state(&app);
         cleanup_testing_files();
     }
 
-    #[tokio::test]
-    async fn does_nothing_when_cursor_is_at_the_top() {
+    #[test]
+    fn does_nothing_when_cursor_is_at_the_top() {
         create_testing_files();
         let mut app: App<DSHashmap> = setup_app_edit();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         assert_cursor_index(&app, 0);
         assert_delete_folder_state(&app);
         app.on_delete();
         app.on_delete();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         assert_delete_folder_state(&app);
         cleanup_testing_files();
     }
 
-    #[tokio::test]
-    async fn does_nothing_when_delete_pressed_once() {
+    #[test]
+    fn does_nothing_when_delete_pressed_once() {
         create_testing_files();
         let mut app: App<DSHashmap> = setup_app_edit();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         assert_delete_folder_state(&app);
         app.on_cursor_down();
         app.on_delete();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         assert_eq!(get_entry_by_kind(&app, FolderEntryType::File).len(), 3);
         assert_eq!(get_entry_by_kind(&app, FolderEntryType::Folder).len(), 1);
         cleanup_testing_files();
     }
 
-    #[tokio::test]
-    async fn resets_delete_confirmation_on_cursor_move() {
+    #[test]
+    fn resets_delete_confirmation_on_cursor_move() {
         create_testing_files();
         let mut app: App<DSHashmap> = setup_app_edit();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         app.on_delete();
         app.on_cursor_down();
@@ -118,11 +118,11 @@ mod delete {
         cleanup_testing_files();
     }
 
-    #[tokio::test]
-    async fn resets_delete_confirmation_on_folder_enter() {
+    #[test]
+    fn resets_delete_confirmation_on_folder_enter() {
         create_testing_files();
         let mut app: App<DSHashmap> = setup_app_edit();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         app.on_cursor_down();
         app.on_delete();
@@ -131,11 +131,11 @@ mod delete {
         cleanup_testing_files();
     }
 
-    #[tokio::test]
-    async fn resets_delete_confirmation_after_deleting_folder() {
+    #[test]
+    fn resets_delete_confirmation_after_deleting_folder() {
         create_testing_files();
         let mut app: App<DSHashmap> = setup_app_edit();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         app.on_cursor_down();
         app.on_delete();
@@ -144,11 +144,11 @@ mod delete {
         cleanup_testing_files();
     }
 
-    #[tokio::test]
-    async fn resets_delete_confirmation_after_deleting_file() {
+    #[test]
+    fn resets_delete_confirmation_after_deleting_file() {
         create_testing_files();
         let mut app: App<DSHashmap> = setup_app_edit();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         app.on_cursor_down();
         app.on_cursor_down();
@@ -158,45 +158,45 @@ mod delete {
         cleanup_testing_files();
     }
     //
-    #[tokio::test]
-    async fn deletes_folder() {
+    #[test]
+    fn deletes_folder() {
         create_testing_files();
         let mut app: App<DSHashmap> = setup_app_edit();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         assert_delete_folder_state(&app);
         app.on_cursor_down();
         app.on_delete();
         app.on_delete();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         assert_eq!(get_entry_by_kind(&app, FolderEntryType::File).len(), 3);
         assert_eq!(get_entry_by_kind(&app, FolderEntryType::Folder).len(), 0);
         cleanup_testing_files();
     }
 
-    #[tokio::test]
-    async fn deletes_file() {
+    #[test]
+    fn deletes_file() {
         create_testing_files();
         let mut app: App<DSHashmap> = setup_app_edit();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
         assert_delete_folder_state(&app);
         app.on_cursor_down();
         app.on_cursor_down();
         app.on_delete();
         app.on_delete();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         assert_eq!(get_entry_by_kind(&app, FolderEntryType::File).len(), 2);
         assert_eq!(get_entry_by_kind(&app, FolderEntryType::Folder).len(), 1);
         cleanup_testing_files();
     }
 
-    #[tokio::test]
-    async fn updated_current_folder_size() {
+    #[test]
+    fn updated_current_folder_size() {
         create_testing_files();
         let mut app: App<DSHashmap> = setup_app_edit();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         let root_entry = get_current_folder(&app).unwrap();
         assert_eq!(root_entry.get_size(), (TEST_FILE_SIZE * 9) as u64);
@@ -205,7 +205,7 @@ mod delete {
         app.on_cursor_down();
         app.on_delete();
         app.on_delete();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         let root_entry_updated = get_current_folder(&app).unwrap();
         assert_eq!(root_entry_updated.get_size(), (TEST_FILE_SIZE * 8) as u64);
@@ -213,25 +213,25 @@ mod delete {
         cleanup_testing_files();
     }
 
-    #[tokio::test]
-    async fn deleting_file_updates_parent_folders_sizes() {
+    #[test]
+    fn deleting_file_updates_parent_folders_sizes() {
         create_testing_files();
         let mut app: App<DSHashmap> = setup_app_edit();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         let root_entry = get_current_folder(&app).unwrap();
         assert_eq!(root_entry.get_size(), (TEST_FILE_SIZE * 9) as u64);
 
         app.on_cursor_down();
         app.on_enter();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         let folder_1 = get_current_folder(&app).unwrap();
         assert_eq!(folder_1.get_size(), (TEST_FILE_SIZE * 6) as u64);
 
         app.on_cursor_down();
         app.on_enter();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         let folder_2 = get_current_folder(&app).unwrap();
         assert_eq!(folder_2.get_size(), (TEST_FILE_SIZE * 3) as u64);
@@ -240,7 +240,7 @@ mod delete {
         app.on_cursor_down();
         app.on_delete();
         app.on_delete();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         let folder_2_upd = get_current_folder(&app).unwrap();
         assert_eq!(folder_2_upd.get_size(), (TEST_FILE_SIZE * 2) as u64);
@@ -248,7 +248,7 @@ mod delete {
         app.on_cursor_up();
         app.on_cursor_up();
         app.on_enter();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         let folder_1_upd = get_current_folder(&app).unwrap();
         assert_eq!(folder_1_upd.get_size(), (TEST_FILE_SIZE * 5) as u64);
@@ -259,7 +259,7 @@ mod delete {
 
         app.on_cursor_up();
         app.on_enter();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         let root_entry_upd = get_current_folder(&app).unwrap();
         assert_eq!(root_entry_upd.get_size(), (TEST_FILE_SIZE * 8) as u64);
@@ -271,18 +271,18 @@ mod delete {
         cleanup_testing_files();
     }
 
-    #[tokio::test]
-    async fn deleting_folder_updates_parent_folders_sizes() {
+    #[test]
+    fn deleting_folder_updates_parent_folders_sizes() {
         create_testing_files();
         let mut app: App<DSHashmap> = setup_app_edit();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         let root_entry = get_current_folder(&app).unwrap();
         assert_eq!(root_entry.get_size(), (TEST_FILE_SIZE * 9) as u64);
 
         app.on_cursor_down();
         app.on_enter();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         let folder_1 = get_current_folder(&app).unwrap();
         assert_eq!(folder_1.get_size(), (TEST_FILE_SIZE * 6) as u64);
@@ -290,14 +290,14 @@ mod delete {
         app.on_cursor_down();
         app.on_delete();
         app.on_delete();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         let folder_1_upd = get_current_folder(&app).unwrap();
         assert_eq!(folder_1_upd.get_size(), (TEST_FILE_SIZE * 3) as u64);
 
         app.on_cursor_up();
         app.on_enter();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         let root_entry_upd = get_current_folder(&app).unwrap();
         assert_eq!(root_entry_upd.get_size(), (TEST_FILE_SIZE * 6) as u64);
@@ -309,11 +309,11 @@ mod delete {
         cleanup_testing_files();
     }
 
-    #[tokio::test]
-    async fn moves_cursor_one_step_up_after_deleting_bottom_entry() {
+    #[test]
+    fn moves_cursor_one_step_up_after_deleting_bottom_entry() {
         create_testing_files();
         let mut app: App<DSHashmap> = setup_app_edit();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         for _ in 1..20 {
             app.on_cursor_down();
@@ -322,7 +322,7 @@ mod delete {
         assert_eq!(get_current_folder(&app).unwrap().cursor_index, 4);
         app.on_delete();
         app.on_delete();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
         assert_eq!(get_current_folder(&app).unwrap().cursor_index, 3);
 
         cleanup_testing_files();

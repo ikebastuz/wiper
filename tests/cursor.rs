@@ -8,10 +8,10 @@ mod cursor {
 
     use super::*;
 
-    #[tokio::test]
-    async fn updates_cursor_position() {
+    #[test]
+    fn updates_cursor_position() {
         let mut app: App<DSHashmap> = setup_app_view();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         assert_cursor_index(&mut app, 0);
 
@@ -22,10 +22,10 @@ mod cursor {
         assert_cursor_index(&mut app, 0);
     }
 
-    #[tokio::test]
-    async fn stops_cursor_at_very_top() {
+    #[test]
+    fn stops_cursor_at_very_top() {
         let mut app: App<DSHashmap> = setup_app_view();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         assert_cursor_index(&mut app, 0);
 
@@ -36,10 +36,10 @@ mod cursor {
         assert_cursor_index(&mut app, 0);
     }
 
-    #[tokio::test]
-    async fn stops_cursor_at_very_bottom() {
+    #[test]
+    fn stops_cursor_at_very_bottom() {
         let mut app: App<DSHashmap> = setup_app_view();
-        await_for_tasks(&mut app).await;
+        handle_tasks_synchronously(&mut app);
 
         for _ in 0..20 {
             app.on_cursor_down();

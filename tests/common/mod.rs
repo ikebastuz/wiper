@@ -1,3 +1,5 @@
+use std::thread;
+use std::time::Duration;
 use wiper::app::App;
 use wiper::config::InitConfig;
 use wiper::fs::{DataStore, DataStoreKey, Folder, FolderEntry, FolderEntryType, SortBy};
@@ -27,10 +29,10 @@ pub fn setup_app_edit<S: DataStore<DataStoreKey>>() -> App<S> {
     app
 }
 
-pub async fn await_for_tasks<S: DataStore<DataStoreKey>>(app: &mut App<S>) {
+pub fn handle_tasks_synchronously<S: DataStore<DataStoreKey>>(app: &mut App<S>) {
     while !app.task_manager.is_done() {
         app.tick();
-        tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
+        thread::sleep(Duration::from_millis(10));
     }
     app.pre_render();
 }
