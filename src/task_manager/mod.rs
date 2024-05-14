@@ -26,13 +26,18 @@ pub struct TaskManager<S: DataStore<DataStoreKey>> {
     _store: PhantomData<S>,
 }
 
+fn _heavy_computation() {
+    let mut _sum = 0.0;
+    for i in 0..10_000_000 {
+        _sum += (i as f64).sqrt();
+    }
+}
 impl<S: DataStore<DataStoreKey>> TaskManager<S> {
     pub fn new() -> Self {
         let (sender, receiver) = mpsc::channel();
         let path_buf_stack = Arc::new(Mutex::new(VecDeque::<PathBuf>::new()));
         let running_tasks = Arc::new(Mutex::new(0));
 
-        // Spawn a single background thread
         let worker_stack = Arc::clone(&path_buf_stack);
         let worker_sender = sender.clone();
         let running_tasks_clone = Arc::clone(&running_tasks);
@@ -41,11 +46,14 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                 let mut stack = worker_stack.lock().unwrap();
                 stack.pop_front()
             };
+
             if let Some(path_buf) = task {
                 let mut tasks = running_tasks_clone.lock().unwrap();
                 *tasks += 1;
+                drop(tasks);
 
                 let folder = path_to_folder(path_buf.clone());
+
                 let _ = worker_sender.send((path_buf, folder));
             } else {
                 thread::sleep(std::time::Duration::from_millis(100));
