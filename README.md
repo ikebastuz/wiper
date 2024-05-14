@@ -13,7 +13,7 @@
 
 
 #### Non-functional
-- [ ] - Configure clippy
+- [x] - Lint with clippy
 - [ ] - Colored first letters (keybindings)
 - [ ] - Better list scrolling
 - [ ] - Maybe auto-center cursor
@@ -34,6 +34,10 @@ cargo run
 ```
 ```bash
 cargo run -- [PATH]
+```
+#### Lint
+```bash
+cargo clippy
 ```
 #### Test
 ```bash

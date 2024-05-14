@@ -4,7 +4,7 @@ use std::error;
 use crate::fps_counter::FPSCounter;
 use crate::fs::{delete_file, delete_folder, DataStore, DataStoreKey, FolderEntryType, SortBy};
 use crate::task_manager::TaskManager;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::config::{InitConfig, UIConfig};
 use std::env;
@@ -227,13 +227,11 @@ impl<S: DataStore<DataStoreKey>> App<S> {
 
     fn propagate_size_update_upwards(
         &mut self,
-        to_delete_path: &PathBuf,
+        to_delete_path: &Path,
         entry_diff: u64,
         diff_kind: DiffKind,
     ) {
-        // TODO: check if after changing parent size
-        // we need to re-sort folder
-        let mut parent_path = to_delete_path.clone();
+        let mut parent_path = to_delete_path.to_path_buf();
         while let Some(parent) = parent_path.parent() {
             if let Some(parent_folder) = self.store.get_folder_mut(&parent_path) {
                 if let Some(parent_folder_entry) =
