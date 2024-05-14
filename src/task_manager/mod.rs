@@ -166,10 +166,10 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         if let Ok(duration) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
             if self.path_buf_stack.lock().unwrap().is_empty()
                 && *self.running_tasks.lock().unwrap() == 0
+                && self.task_timer.start.is_some()
+                && self.task_timer.finish.is_none()
             {
-                if self.task_timer.start.is_some() && self.task_timer.finish.is_none() {
-                    self.task_timer.finish = Some(duration.as_millis());
-                }
+                self.task_timer.finish = Some(duration.as_millis());
             }
         };
     }

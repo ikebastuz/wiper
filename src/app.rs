@@ -190,39 +190,35 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                 FolderEntryType::Folder => {
                     if !self.ui_config.confirming_deletion {
                         self.ui_config.confirming_deletion = true;
-                    } else {
-                        if delete_folder(&to_delete_path, &self.ui_config).is_ok() {
-                            if let Some(subfolder_size) = entry.size {
-                                self.propagate_size_update_upwards(
-                                    &to_delete_path,
-                                    subfolder_size,
-                                    DiffKind::Subtract,
-                                );
-                            }
-                            folder.remove_selected();
-                            self.store.remove_path(&to_delete_path);
-                            self.store.set_current_folder(folder.clone());
-                            self.ui_config.confirming_deletion = false;
+                    } else if delete_folder(&to_delete_path, &self.ui_config).is_ok() {
+                        if let Some(subfolder_size) = entry.size {
+                            self.propagate_size_update_upwards(
+                                &to_delete_path,
+                                subfolder_size,
+                                DiffKind::Subtract,
+                            );
                         }
+                        folder.remove_selected();
+                        self.store.remove_path(&to_delete_path);
+                        self.store.set_current_folder(folder.clone());
+                        self.ui_config.confirming_deletion = false;
                     }
                 }
                 FolderEntryType::File => {
                     if !self.ui_config.confirming_deletion {
                         self.ui_config.confirming_deletion = true;
-                    } else {
-                        if delete_file(&to_delete_path, &self.ui_config).is_ok() {
-                            if let Some(subfile_size) = entry.size {
-                                let parent_folder = PathBuf::from(to_delete_path.parent().unwrap());
-                                self.propagate_size_update_upwards(
-                                    &parent_folder,
-                                    subfile_size,
-                                    DiffKind::Subtract,
-                                );
-                            }
-                            folder.remove_selected();
-                            self.store.set_current_folder(folder.clone());
-                            self.ui_config.confirming_deletion = false;
+                    } else if delete_file(&to_delete_path, &self.ui_config).is_ok() {
+                        if let Some(subfile_size) = entry.size {
+                            let parent_folder = PathBuf::from(to_delete_path.parent().unwrap());
+                            self.propagate_size_update_upwards(
+                                &parent_folder,
+                                subfile_size,
+                                DiffKind::Subtract,
+                            );
                         }
+                        folder.remove_selected();
+                        self.store.set_current_folder(folder.clone());
+                        self.ui_config.confirming_deletion = false;
                     }
                 }
             }
@@ -248,7 +244,6 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                             DiffKind::Subtract => *size -= entry_diff,
                         }
                     }
-                } else {
                 }
                 parent_folder.sorted_by = None;
                 parent_path = parent.to_path_buf();
