@@ -1,7 +1,7 @@
 use crate::fs::{path_to_folder, DataStore, DataStoreKey, Folder, FolderEntryType};
 use std::collections::VecDeque;
 use std::marker::PhantomData;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -27,14 +27,16 @@ pub struct TaskManager<S: DataStore<DataStoreKey>> {
     _store: PhantomData<S>,
 }
 
+/// For debugging purposes
 fn _heavy_computation() {
     let mut _sum = 0.0;
     for i in 0..10_000_000 {
         _sum += (i as f64).sqrt();
     }
 }
+
 impl<S: DataStore<DataStoreKey>> TaskManager<S> {
-    pub fn new() -> Self {
+    fn new() -> Self {
         let (sender, receiver) = mpsc::channel();
         let path_buf_stack = Arc::new(Mutex::new(VecDeque::<PathBuf>::new()));
         let running_tasks = Arc::new(Mutex::new(0));
@@ -74,7 +76,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         }
     }
 
-    pub fn add_task(&mut self, path_buf: &PathBuf) {
+    pub fn add_task(&mut self, path_buf: &Path) {
         {
             let mut stack = self.path_buf_stack.lock().unwrap();
             stack.push_back(path_buf.to_path_buf());
@@ -90,23 +92,16 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
     }
 
     pub fn maybe_add_task(&mut self, store: &S, path_buf: &PathBuf) {
-        if !store.has_path(&path_buf) {
+        if !store.has_path(path_buf) {
             self.add_task(path_buf);
         }
     }
 
     pub fn handle_results(&mut self, store: &mut S) {
         let mut tasks_finished = 0;
-        loop {
-            match self.receiver.try_recv() {
-                Ok((path_buf, folder)) => {
-                    tasks_finished += 1;
-                    self.process_entry(store, &path_buf, folder);
-                }
-                _ => {
-                    break;
-                }
-            }
+        while let Ok((path_buf, folder)) = self.receiver.try_recv() {
+            tasks_finished += 1;
+            self.process_entry(store, &path_buf, folder);
         }
 
         self.maybe_stop_timer();
@@ -123,10 +118,10 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                 child_entry.size = store.get_entry_size(&subfolder_path);
                 folder.sorted_by = None;
 
-                self.maybe_add_task(&store, &subfolder_path)
+                self.maybe_add_task(store, &subfolder_path)
             }
         }
-        store.set_folder(&path_buf, folder.clone());
+        store.set_folder(path_buf, folder.clone());
 
         let mut t = folder.clone();
         let mut p = path_buf.clone();
@@ -177,5 +172,11 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                 }
             }
         };
+    }
+}
+
+impl<S: DataStore<DataStoreKey>> Default for TaskManager<S> {
+    fn default() -> Self {
+        Self::new()
     }
 }
