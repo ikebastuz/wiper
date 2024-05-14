@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::SystemTime;
 
 #[derive(Debug)]
 pub struct TaskTimer {
@@ -73,9 +74,13 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         }
     }
 
-    pub fn add_task(&self, path_buf: &PathBuf) {
-        let mut stack = self.path_buf_stack.lock().unwrap();
-        stack.push_back(path_buf.to_path_buf());
+    pub fn add_task(&mut self, path_buf: &PathBuf) {
+        {
+            let mut stack = self.path_buf_stack.lock().unwrap();
+            stack.push_back(path_buf.to_path_buf());
+        } // Lock is released here
+
+        self.maybe_start_timer();
     }
 
     pub fn is_done(&self) -> bool {
@@ -146,5 +151,37 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
             }
         }
     }
-    fn maybe_stop_timer(&mut self) {}
+    fn maybe_start_timer(&mut self) {
+        match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+            Ok(duration) => {
+                if self.task_timer.start.is_none() {
+                    // Start is None - record start
+                    self.task_timer.start = Some(duration.as_millis());
+                } else {
+                    // Start is not None
+                    if self.task_timer.finish.is_some() {
+                        // Finish is not None - restart
+                        self.task_timer.start = Some(duration.as_millis());
+                        self.task_timer.finish = None;
+                    }
+                }
+            }
+            _ => {}
+        };
+    }
+
+    fn maybe_stop_timer(&mut self) {
+        match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+            Ok(duration) => {
+                if self.path_buf_stack.lock().unwrap().is_empty()
+                    && *self.running_tasks.lock().unwrap() == 0
+                {
+                    if self.task_timer.start.is_some() && self.task_timer.finish.is_none() {
+                        self.task_timer.finish = Some(duration.as_millis());
+                    }
+                }
+            }
+            _ => {}
+        };
+    }
 }
