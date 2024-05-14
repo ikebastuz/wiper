@@ -47,7 +47,7 @@ impl PartialOrd for FolderEntry {
 }
 
 impl FolderEntry {
-    pub fn sort_by_size(entries: &mut Vec<FolderEntry>) {
+    pub fn sort_by_size(entries: &mut [FolderEntry]) {
         entries.sort_by(|a, b| {
             if let (Some(size_a), Some(size_b)) = (a.size, b.size) {
                 size_a.cmp(&size_b)

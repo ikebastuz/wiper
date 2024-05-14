@@ -86,7 +86,7 @@ impl DataStore<DataStoreKey> for DSHashmap {
     }
 
     // TODO: Returns string that should be processed
-    fn move_to_child(&mut self, title: &String) -> PathBuf {
+    fn move_to_child(&mut self, title: &str) -> PathBuf {
         let mut new_path = PathBuf::from(&self.current_path);
         new_path.push(title);
         self.current_path = new_path.clone();
@@ -95,11 +95,7 @@ impl DataStore<DataStoreKey> for DSHashmap {
     }
 
     fn get_entry_size(&mut self, path: &PathBuf) -> Option<u64> {
-        if let Some(entry) = self.store.get(path) {
-            Some(entry.get_size())
-        } else {
-            None
-        }
+        self.store.get(path).map(|entry| entry.get_size())
     }
 
     fn remove_path(&mut self, path: &PathBuf) {
@@ -125,7 +121,7 @@ impl DataStore<DataStoreKey> for DSHashmap {
                     to_process_subfolders.push(subfolder_path);
                 }
             }
-            self.set_folder(&path_buf, folder.clone());
+            self.set_folder(path_buf, folder.clone());
 
             let mut t = folder.clone();
             let mut p = path_buf.clone();

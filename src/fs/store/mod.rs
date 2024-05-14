@@ -38,7 +38,7 @@ pub trait DataStore<T> {
     fn move_to_parent(&mut self) -> Vec<T>;
 
     /// Update current active path to child folder by provided title
-    fn move_to_child(&mut self, title: &String) -> T;
+    fn move_to_child(&mut self, title: &str) -> T;
 
     /// Remove provided path record from store
     fn remove_path(&mut self, path: &T);
