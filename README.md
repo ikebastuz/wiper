@@ -25,8 +25,16 @@
 - [ ] - Prevent from locking main thread, always process inputs
 - [ ] - Improve MPSC messaging (make single receiver)
 - [ ] - Review all variable clones, optimize
+- [ ] - Check Mutex locks for performance improvements
 
 ## Scripts
+#### Run
+```bash
+cargo run
+```
+```bash
+cargo run -- [PATH]
+```
 #### Test
 ```bash
 cargo test -- --test-threads=1 --nocapture
