@@ -63,8 +63,8 @@ impl<S: DataStore<DataStoreKey>> App<S> {
             },
             task_manager: TaskManager::<S>::new(),
             store: S::new(),
-            logger: Logger::new(),
-            fps_counter: FPSCounter::new(),
+            logger: Logger::default(),
+            fps_counter: FPSCounter::default(),
         };
 
         app.store.set_current_path(&current_path);

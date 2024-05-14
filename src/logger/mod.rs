@@ -12,8 +12,14 @@ pub struct Logger {
     pub messages: VecDeque<(u128, MessageLevel, String)>,
 }
 
+impl Default for Logger {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Logger {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Logger {
             messages: VecDeque::new(),
         }

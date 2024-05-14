@@ -9,8 +9,14 @@ pub struct FPSCounter {
     pub skipped_frames: f64,
 }
 
+impl Default for FPSCounter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FPSCounter {
-    pub fn new() -> FPSCounter {
+    fn new() -> FPSCounter {
         FPSCounter {
             frame_count: 0,
             last_frame_time: Instant::now(),
