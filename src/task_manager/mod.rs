@@ -50,6 +50,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         if free_threads > 0 {
             let new_tasks = free_threads.min(self.path_buf_stack.len());
             if new_tasks > 0 {
+                // TODO: log only when debug is enabled
                 logger.log(
                     format!("Spawning {} threads", new_tasks),
                     MessageLevel::Info,
@@ -80,6 +81,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
 
         let stack_size = self.receiver_stack.len();
         if stack_size > 0 {
+            // TODO: log only when debug is enabled
             logger.log(
                 format!("Processing {} stack", stack_size),
                 MessageLevel::Info,
