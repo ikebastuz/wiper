@@ -30,7 +30,6 @@ pub fn setup_app_edit<S: DataStore<DataStoreKey>>() -> App<S> {
 pub async fn await_for_tasks<S: DataStore<DataStoreKey>>(app: &mut App<S>) {
     while !app.task_manager.is_done() {
         app.tick();
-
         tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
     }
     app.pre_render();

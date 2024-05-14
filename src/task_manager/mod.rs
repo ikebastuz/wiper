@@ -22,6 +22,7 @@ pub struct TaskManager<S: DataStore<DataStoreKey>> {
     pub sender: Sender<(PathBuf, Folder)>,
     /// Job execution timer
     pub task_timer: TaskTimer,
+    pub running_tasks: Arc<Mutex<usize>>,
     _store: PhantomData<S>,
 }
 
@@ -29,16 +30,21 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
     pub fn new() -> Self {
         let (sender, receiver) = mpsc::channel();
         let path_buf_stack = Arc::new(Mutex::new(VecDeque::<PathBuf>::new()));
+        let running_tasks = Arc::new(Mutex::new(0));
 
         // Spawn a single background thread
         let worker_stack = Arc::clone(&path_buf_stack);
         let worker_sender = sender.clone();
+        let running_tasks_clone = Arc::clone(&running_tasks);
         thread::spawn(move || loop {
             let task = {
                 let mut stack = worker_stack.lock().unwrap();
                 stack.pop_front()
             };
             if let Some(path_buf) = task {
+                let mut tasks = running_tasks_clone.lock().unwrap();
+                *tasks += 1;
+
                 let folder = path_to_folder(path_buf.clone());
                 let _ = worker_sender.send((path_buf, folder));
             } else {
@@ -54,6 +60,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                 start: None,
                 finish: None,
             },
+            running_tasks,
             _store: PhantomData,
         }
     }
@@ -65,7 +72,8 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
 
     pub fn is_done(&self) -> bool {
         let stack = self.path_buf_stack.lock().unwrap();
-        stack.is_empty()
+        let running_tasks = self.running_tasks.lock().unwrap();
+        stack.is_empty() && *running_tasks == 0
     }
 
     pub fn maybe_add_task(&mut self, store: &S, path_buf: &PathBuf) {
@@ -75,9 +83,11 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
     }
 
     pub fn handle_results(&mut self, store: &mut S) {
+        let mut tasks_finished = 0;
         loop {
             match self.receiver.try_recv() {
                 Ok((path_buf, folder)) => {
+                    tasks_finished += 1;
                     self.process_entry(store, &path_buf, folder);
                 }
                 _ => {
@@ -85,7 +95,11 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                 }
             }
         }
+
         self.maybe_stop_timer();
+
+        let mut running_tasks = self.running_tasks.lock().unwrap();
+        *running_tasks -= tasks_finished;
     }
 
     pub fn process_entry(&mut self, store: &mut S, path_buf: &PathBuf, mut folder: Folder) {
