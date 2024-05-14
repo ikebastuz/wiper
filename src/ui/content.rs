@@ -5,6 +5,7 @@ use crate::logger::Logger;
 use crate::logger::MessageLevel;
 use crate::task_manager::TaskTimer;
 use ratatui::{prelude::*, widgets::*};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::ui::constants::{
     NORMAL_ROW_COLOR, TABLE_HEADER_BG, TABLE_HEADER_FG, TABLE_SPACE_WIDTH, TEXT_COLOR,
@@ -145,8 +146,13 @@ pub fn render_debug_panel(area: Rect, buf: &mut Buffer, logger: &Logger, debug_d
         .messages
         .iter()
         .enumerate()
-        .map(|(_i, (level, message))| {
+        .map(|(_i, (timestamp, level, message))| {
             let mut message = message.clone();
+            let current_timestamp_ms = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_millis();
+            let elapsed_ms = current_timestamp_ms - timestamp;
             if message.len() > MAX_LOG_LEN {
                 message = format!(
                     "{}..{}",
@@ -154,6 +160,8 @@ pub fn render_debug_panel(area: Rect, buf: &mut Buffer, logger: &Logger, debug_d
                     &message[message.len() - MAX_LOG_LEN / 4 * 3..]
                 );
             }
+            message = format!("[{:.1}] - {}", elapsed_ms as f64 / 1000.0, message);
+
             let style = Style::default();
             let style = match level {
                 MessageLevel::Info => style.fg(TEXT_COLOR),

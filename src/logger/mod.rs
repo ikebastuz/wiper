@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug)]
 pub enum MessageLevel {
@@ -8,7 +9,7 @@ pub enum MessageLevel {
 
 #[derive(Debug)]
 pub struct Logger {
-    pub messages: VecDeque<(MessageLevel, String)>,
+    pub messages: VecDeque<(u128, MessageLevel, String)>,
 }
 
 impl Logger {
@@ -19,6 +20,10 @@ impl Logger {
     }
 
     pub fn log(&mut self, message: String, level: MessageLevel) {
-        self.messages.push_front((level, message));
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis();
+        self.messages.push_front((timestamp, level, message));
     }
 }
