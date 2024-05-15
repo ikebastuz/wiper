@@ -20,7 +20,7 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
         let vertical = Layout::vertical([
             Constraint::Length(2),
             Constraint::Fill(1),
-            Constraint::Length(4),
+            Constraint::Length(3),
         ]);
 
         let block = Block::default()

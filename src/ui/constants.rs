@@ -12,6 +12,4 @@ pub const TABLE_SPACE_WIDTH: usize = 40;
 pub const TEXT_UNKNOWN: &str = "N/A";
 pub const TEXT_PARENT_DIR: &str = "..";
 pub const TEXT_TITLE: &str = "Wiper";
-pub const TEXT_HINT_L1: &str = "↓↑ - move | \"Enter\" - select | \"Backspace\" - parent";
-pub const TEXT_HINT_L2: &str =
-    "\"d-d\" - delete | \"s\" - sort | \"c\" - color | \"t\" - trash | \"q\" - exit";
+pub const TEXT_HINT_L1: &str = "←↓↑→/Enter/Backspace - navigate";

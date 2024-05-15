@@ -4,6 +4,8 @@ use ratatui::{prelude::*, widgets::*};
 
 use crate::ui::utils::{format_file_size, value_to_box};
 
+use super::utils::color_capital_letter;
+
 pub fn render_title(
     area: Rect,
     buf: &mut Buffer,
@@ -13,9 +15,10 @@ pub fn render_title(
     let vertical_layout = Layout::vertical([Constraint::Max(1)]);
     let [top_row] = vertical_layout.areas(area);
 
-    let horizontal_layout = Layout::horizontal([Constraint::Min(1), Constraint::Min(1)]);
+    let horizontal_layout = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]);
     let [left_col, right_col] = horizontal_layout.areas(top_row);
 
+    // Folder data
     if let Some(folder) = maybe_folder {
         Paragraph::new(format!(
             "{} | {}",
@@ -27,12 +30,25 @@ pub fn render_title(
         .render(left_col, buf);
     }
 
-    let config_text = Text::from(format!(
-        "Colored: {} | Trash: {}",
-        value_to_box(&ui_config.colored),
-        value_to_box(&ui_config.move_to_trash)
-    ));
-    Paragraph::new(config_text)
+    let config_layout = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]);
+    let [col_color, col_trash] = config_layout.areas(right_col);
+
+    // Settings
+    let text_color = color_capital_letter(
+        "Colored: ".into(),
+        None,
+        Some(value_to_box(&ui_config.colored)),
+    );
+    let text_trash = color_capital_letter(
+        "Trash: ".into(),
+        None,
+        Some(value_to_box(&ui_config.move_to_trash)),
+    );
+
+    Paragraph::new(text_color)
         .right_aligned()
-        .render(right_col, buf);
+        .render(col_color, buf);
+    Paragraph::new(text_trash)
+        .right_aligned()
+        .render(col_trash, buf);
 }

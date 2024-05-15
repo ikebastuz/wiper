@@ -127,7 +127,7 @@ pub fn render_debug_panel(area: Rect, buf: &mut Buffer, logger: &Logger, debug_d
         .padding(Padding::horizontal(1))
         .borders(Borders::ALL)
         .border_set(symbols::border::PROPORTIONAL_TALL)
-        .title("Stats")
+        .title(" Stats ")
         .title_alignment(Alignment::Center);
 
     let stats = Paragraph::new(stats_text).left_aligned().block(stats_block);
@@ -139,7 +139,7 @@ pub fn render_debug_panel(area: Rect, buf: &mut Buffer, logger: &Logger, debug_d
         .padding(Padding::horizontal(1))
         .borders(Borders::ALL)
         .border_set(symbols::border::PROPORTIONAL_TALL)
-        .title("Logs")
+        .title(" Logs ")
         .title_alignment(Alignment::Center);
 
     let logs: Vec<ListItem> = logger

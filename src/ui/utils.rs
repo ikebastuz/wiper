@@ -4,6 +4,8 @@ use crate::fs::FolderEntryType;
 use crate::ui::constants::{NORMAL_ROW_COLOR, TABLE_SPACE_WIDTH, TEXT_UNKNOWN};
 use ratatui::{prelude::*, widgets::*};
 
+use super::constants::TEXT_PRE_DELETED_BG;
+
 pub fn format_file_size(size: u64) -> String {
     const KB: u64 = 1024;
     const MB: u64 = KB * 1024;
@@ -87,4 +89,34 @@ pub fn folder_to_rows<'a>(folder: &'a Folder, config: &'a UIConfig) -> Vec<Row<'
             ])
         })
         .collect()
+}
+
+pub fn color_capital_letter<'a>(
+    text: String,
+    prefix: Option<String>,
+    postfix: Option<String>,
+) -> Line<'a> {
+    let mut spans = Vec::new();
+
+    if let Some(pre) = prefix {
+        spans.push(Span::raw(pre));
+    }
+
+    if let Some(first_char) = text.chars().next() {
+        let first_char_upper = first_char.to_uppercase().to_string();
+        spans.push(Span::styled(
+            first_char_upper,
+            Style::default()
+                .fg(TEXT_PRE_DELETED_BG)
+                .add_modifier(Modifier::BOLD)
+                .add_modifier(Modifier::UNDERLINED),
+        ));
+        spans.push(Span::raw(text[first_char.len_utf8()..].to_string()));
+    }
+
+    if let Some(post) = postfix {
+        spans.push(Span::raw(post));
+    }
+
+    Line::from(spans)
 }

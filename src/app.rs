@@ -53,9 +53,9 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         let mut app = App {
             running: true,
             ui_config: UIConfig {
-                colored: true,
+                colored: false,
                 confirming_deletion: false,
-                sort_by: SortBy::Size,
+                sort_by: SortBy::Title,
                 move_to_trash: true,
                 open_file: true,
                 debug_enabled: false,
