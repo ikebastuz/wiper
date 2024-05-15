@@ -14,16 +14,15 @@
 
 #### Non-functional
 - [x] - Lint with clippy
-- [ ] - Colored first letters (keybindings)
+- [x] - Colored first letters (keybindings)
 - [ ] - Better list scrolling
 - [ ] - Maybe auto-center cursor
 - [ ] - Refactor unit tests for easier state awaiting
 
 #### Performance
 - [ ] - Indexing / caching / refreshing
-- [ ] - Optimize folder sorting
+- [x] - Optimize folder sorting
 - [ ] - Prevent from locking main thread, always process inputs
-- [ ] - Improve MPSC messaging (make single receiver)
 - [ ] - Review all variable clones, optimize
 - [ ] - Check Mutex locks for performance improvements
 - [ ] - Consider having threadpool instead of single extra thread
