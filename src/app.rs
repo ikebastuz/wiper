@@ -3,6 +3,7 @@ use std::error;
 
 use crate::fps_counter::FPSCounter;
 use crate::fs::{delete_file, delete_folder, DataStore, DataStoreKey, FolderEntryType, SortBy};
+use crate::spinner::Spinner;
 use crate::task_manager::TaskManager;
 use std::path::{Path, PathBuf};
 
@@ -31,7 +32,10 @@ pub struct App<S: DataStore<DataStoreKey>> {
     pub store: S,
     /// Debug logger
     pub logger: Logger,
+    /// FPS Counter
     pub fps_counter: FPSCounter,
+    /// Spinner
+    pub spinner: Spinner,
 }
 
 impl<S: DataStore<DataStoreKey>> App<S> {
@@ -64,6 +68,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
             store: S::new(),
             logger: Logger::default(),
             fps_counter: FPSCounter::default(),
+            spinner: Spinner::new(),
         };
 
         app.store.set_current_path(&current_path);

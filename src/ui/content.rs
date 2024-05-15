@@ -3,7 +3,6 @@ use crate::fs::Folder;
 use crate::fs::SortBy;
 use crate::logger::Logger;
 use crate::logger::MessageLevel;
-use crate::task_manager::TaskTimer;
 use ratatui::{prelude::*, widgets::*};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -15,10 +14,10 @@ use crate::ui::utils::folder_to_rows;
 
 const MAX_LOG_LEN: usize = 40;
 #[derive(Debug)]
-pub struct DebugData<'a> {
+pub struct DebugData {
     pub path_stack: usize,
     pub threads: usize,
-    pub task_timer: &'a TaskTimer,
+    pub time_taken: Option<u128>,
     pub fps: String,
     pub skipped_frames: String,
 }
@@ -104,14 +103,8 @@ pub fn render_debug_panel(area: Rect, buf: &mut Buffer, logger: &Logger, debug_d
 
     // Stats
     let time_taken = debug_data
-        .task_timer
-        .start
-        .and_then(|start| {
-            debug_data
-                .task_timer
-                .finish
-                .map(|finish| (finish - start).to_string())
-        })
+        .time_taken
+        .map(|t| t.to_string())
         .unwrap_or_else(|| "...".to_string());
 
     let stats_text = Text::from(format!(

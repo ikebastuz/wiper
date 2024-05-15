@@ -16,6 +16,7 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         self.pre_render();
         let fps = self.fps_counter.update();
+        let time_taken = self.task_manager.time_taken();
 
         let vertical = Layout::vertical([
             Constraint::Length(2),
@@ -23,8 +24,17 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
             Constraint::Length(3),
         ]);
 
+        let block_title_symbol = if let Some(_) = time_taken {
+            self.spinner.done()
+        } else {
+            self.spinner.next()
+        };
+
         let block = Block::default()
-            .title(" Wiper ")
+            .title(format!(
+                " {} Wiper {} ",
+                block_title_symbol, block_title_symbol
+            ))
             .title_alignment(Alignment::Center)
             .borders(Borders::ALL)
             .padding(Padding::horizontal(1))
@@ -41,7 +51,7 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
         let debug = DebugData {
             path_stack: self.task_manager.path_buf_stack.lock().unwrap().len(),
             threads: *self.task_manager.running_tasks.lock().unwrap(),
-            task_timer: &self.task_manager.task_timer,
+            time_taken,
             fps: format!("{:.1}", fps),
             skipped_frames: format!("{:.1}", self.fps_counter.skipped_frames),
         };

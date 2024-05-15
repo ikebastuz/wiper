@@ -24,3 +24,5 @@ pub mod logger;
 
 /// FPS counter
 pub mod fps_counter;
+
+pub mod spinner;

@@ -173,6 +173,12 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
             }
         };
     }
+
+    pub fn time_taken(&self) -> Option<u128> {
+        self.task_timer
+            .start
+            .and_then(|start| self.task_timer.finish.map(|finish| finish - start))
+    }
 }
 
 impl<S: DataStore<DataStoreKey>> Default for TaskManager<S> {
