@@ -40,4 +40,4 @@ cargo build --release
 
 ## Contributing
 If you have any suggestions, improvements, or bug fixes, feel free to open an issue or submit a pull request.
-Current list of TODOs you can find [here]('./src/README.md')
+Current list of TODOs you can find [here](src/README.md)
