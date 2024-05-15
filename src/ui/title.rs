@@ -15,7 +15,7 @@ pub fn render_title(
     let vertical_layout = Layout::vertical([Constraint::Max(1)]);
     let [top_row] = vertical_layout.areas(area);
 
-    let horizontal_layout = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]);
+    let horizontal_layout = Layout::horizontal([Constraint::Fill(1), Constraint::Max(23)]);
     let [left_col, right_col] = horizontal_layout.areas(top_row);
 
     // Folder data
@@ -30,7 +30,7 @@ pub fn render_title(
         .render(left_col, buf);
     }
 
-    let config_layout = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]);
+    let config_layout = Layout::horizontal([Constraint::Max(12), Constraint::Max(11)]);
     let [col_color, col_trash] = config_layout.areas(right_col);
 
     // Settings

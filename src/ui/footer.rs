@@ -13,7 +13,7 @@ pub fn render_footer(area: Rect, buf: &mut Buffer) {
         Constraint::Fill(1),
         Constraint::Max(13),
         Constraint::Max(6),
-        Constraint::Max(6),
+        Constraint::Max(4),
     ]);
     let [col_navigate, col_delete, col_sort, col_quit] = layout.areas(inner_area);
 
