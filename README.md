@@ -14,8 +14,10 @@ https://github.com/ikebastuz/wiper/assets/24222413/c61a6ad8-0a4b-4588-bdef-2aa39
 - User-Friendly Output: Displays results in an easily understandable format.
 
 ## Usage
-[to run in current dir]
-[to run in target dir]
+#### Run in current dir
+`wiper`
+#### Run in specific dir
+`wiper [PATH]`
 
 ## Keybindings
 - `jk/↓↑` - Navigate up/down
