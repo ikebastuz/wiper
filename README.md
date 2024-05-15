@@ -41,7 +41,7 @@ cargo clippy
 ```
 #### Test
 ```bash
-cargo test -- --test-threads=1 --nocapture
+cargo test -- --nocapture
 ```
 #### Build
 ```bash
