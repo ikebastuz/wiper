@@ -88,6 +88,10 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         self.running = false;
     }
 
+    pub fn on_escape(&mut self) {
+        self.ui_config.confirming_deletion = false;
+    }
+
     pub fn on_toggle_coloring(&mut self) {
         self.ui_config.colored = !self.ui_config.colored;
     }

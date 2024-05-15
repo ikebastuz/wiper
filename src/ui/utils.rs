@@ -4,7 +4,7 @@ use crate::fs::FolderEntryType;
 use crate::ui::constants::{NORMAL_ROW_COLOR, TABLE_SPACE_WIDTH, TEXT_UNKNOWN};
 use ratatui::{prelude::*, widgets::*};
 
-use super::constants::TEXT_PRE_DELETED_BG;
+use super::constants::TEXT_HIGHLIGHTED;
 
 pub fn format_file_size(size: u64) -> String {
     const KB: u64 = 1024;
@@ -107,7 +107,7 @@ pub fn color_capital_letter<'a>(
         spans.push(Span::styled(
             first_char_upper,
             Style::default()
-                .fg(TEXT_PRE_DELETED_BG)
+                .fg(TEXT_HIGHLIGHTED)
                 .add_modifier(Modifier::BOLD)
                 .add_modifier(Modifier::UNDERLINED),
         ));

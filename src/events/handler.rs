@@ -7,8 +7,10 @@ pub fn handle_key_events<S: DataStore<DataStoreKey>>(
     app: &mut App<S>,
 ) -> AppResult<()> {
     match key_event.code {
-        // Exit application on `ESC` or `q`
-        KeyCode::Esc | KeyCode::Char('q') => {
+        KeyCode::Esc => {
+            app.on_escape();
+        }
+        KeyCode::Char('q') => {
             app.quit();
         }
         KeyCode::Up | KeyCode::Char('k') => {
