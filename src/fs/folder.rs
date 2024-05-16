@@ -23,6 +23,7 @@ impl Folder {
                 kind: FolderEntryType::Parent,
                 title: String::from(TEXT_PARENT_DIR),
                 size: None,
+                is_loaded: true,
             }],
         }
     }

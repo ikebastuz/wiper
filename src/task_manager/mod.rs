@@ -91,9 +91,12 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         stack.is_empty() && *running_tasks == 0
     }
 
-    pub fn maybe_add_task(&mut self, store: &S, path_buf: &PathBuf) {
+    pub fn maybe_add_task(&mut self, store: &S, path_buf: &PathBuf) -> bool {
         if !store.has_path(path_buf) {
             self.add_task(path_buf);
+            true
+        } else {
+            false
         }
     }
 
@@ -118,29 +121,36 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                 child_entry.size = store.get_entry_size(&subfolder_path);
                 folder.sorted_by = None;
 
-                self.maybe_add_task(store, &subfolder_path)
+                let task_added = self.maybe_add_task(store, &subfolder_path);
+                if task_added {
+                    child_entry.is_loaded = false;
+                }
             }
         }
+
         store.set_folder(path_buf, folder.clone());
 
-        let mut t = folder.clone();
-        let mut p = path_buf.clone();
+        let mut folder_traverse = folder.clone();
+        let mut path_traverse = path_buf.clone();
+        let mut is_loaded_traverse = folder.entries.iter().all(|entry| entry.is_loaded);
 
-        while let Some(parent_buf) = p.parent() {
-            if parent_buf == p {
+        while let Some(parent_buf) = path_traverse.parent() {
+            if parent_buf == path_traverse {
                 break;
             }
             if let Some(parent_folder) = store.get_folder_mut(&PathBuf::from(parent_buf)) {
                 for entry in parent_folder.entries.iter_mut() {
-                    if entry.title == t.title {
-                        entry.size = Some(t.get_size());
+                    if entry.title == folder_traverse.title {
+                        entry.size = Some(folder_traverse.get_size());
+                        entry.is_loaded = is_loaded_traverse;
                         parent_folder.sorted_by = None;
 
                         break;
                     }
                 }
-                t = parent_folder.clone();
-                p = parent_buf.to_path_buf();
+                folder_traverse = parent_folder.clone();
+                path_traverse = parent_buf.to_path_buf();
+                is_loaded_traverse = parent_folder.entries.iter().all(|entry| entry.is_loaded);
             } else {
                 break;
             }

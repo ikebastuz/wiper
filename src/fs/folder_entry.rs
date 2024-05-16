@@ -32,6 +32,7 @@ pub struct FolderEntry {
     pub title: String,
     pub size: Option<u64>,
     pub kind: FolderEntryType,
+    pub is_loaded: bool,
 }
 
 impl Ord for FolderEntry {

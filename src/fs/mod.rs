@@ -32,17 +32,17 @@ pub fn path_to_folder(path: PathBuf) -> Folder {
                 kind: FolderEntryType::File,
                 title: file_name.to_owned(),
                 size: None,
+                is_loaded: true,
             };
             if entry.path().is_dir() {
                 folder_entry.kind = FolderEntryType::Folder;
-                folder.entries.push(folder_entry);
             } else {
                 let metadata = entry.metadata().expect("Failed to get metadata");
                 let size = metadata.len();
 
                 folder_entry.size = Some(size);
-                folder.entries.push(folder_entry);
             }
+            folder.entries.push(folder_entry);
         }
     }
 

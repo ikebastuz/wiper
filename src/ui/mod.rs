@@ -62,6 +62,7 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
             &self.ui_config,
             &self.logger,
             &debug,
+            spin_right,
         );
         render_footer(footer_area, buf);
     }

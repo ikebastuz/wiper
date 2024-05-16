@@ -28,6 +28,7 @@ pub fn render_content(
     config: &UIConfig,
     logger: &Logger,
     debug_data: &DebugData,
+    loading_indicator: char,
 ) {
     let horizontal_layout = Layout::horizontal(match config.debug_enabled {
         true => [Constraint::Min(1), Constraint::Min(1)],
@@ -37,7 +38,7 @@ pub fn render_content(
     let [left_col, right_col] = horizontal_layout.areas(area);
 
     if let Some(folder) = maybe_folder {
-        render_table(left_col, buf, folder, config);
+        render_table(left_col, buf, folder, config, loading_indicator);
     }
 
     if config.debug_enabled {
@@ -45,7 +46,13 @@ pub fn render_content(
     }
 }
 
-pub fn render_table(area: Rect, buf: &mut Buffer, folder: &Folder, config: &UIConfig) {
+pub fn render_table(
+    area: Rect,
+    buf: &mut Buffer,
+    folder: &Folder,
+    config: &UIConfig,
+    loading_indicator: char,
+) {
     let block = Block::default()
         .borders(Borders::ALL)
         .padding(Padding::horizontal(1))
@@ -72,7 +79,7 @@ pub fn render_table(area: Rect, buf: &mut Buffer, folder: &Folder, config: &UICo
         .style(header_style)
         .height(1);
 
-    let rows = folder_to_rows(folder, config);
+    let rows = folder_to_rows(folder, config, loading_indicator);
 
     let table = Table::new(
         rows,
