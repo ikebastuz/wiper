@@ -24,17 +24,16 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
             Constraint::Length(3),
         ]);
 
-        let block_title_symbol = if time_taken.is_some() {
-            self.spinner.done()
+        let (spin_left, spin_right) = if time_taken.is_some() {
+            let symbol_done = self.spinner.done();
+            (symbol_done, symbol_done)
         } else {
-            self.spinner.next_item()
+            self.spinner.move_position(1);
+            self.spinner.get_icons()
         };
 
         let block = Block::default()
-            .title(format!(
-                " {} Wiper {} ",
-                block_title_symbol, block_title_symbol
-            ))
+            .title(format!(" {} Wiper {} ", spin_left, spin_right))
             .title_alignment(Alignment::Center)
             .borders(Borders::ALL)
             .padding(Padding::horizontal(1))

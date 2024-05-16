@@ -72,8 +72,8 @@ pub fn folder_to_rows<'a>(folder: &'a Folder, config: &'a UIConfig) -> Vec<Row<'
                 None => (Text::from(TEXT_UNKNOWN), Text::from(" "), NORMAL_ROW_COLOR),
             };
             let prefix = match item.kind == FolderEntryType::Folder {
-                true => Text::from("[ ]"),
-                false => Text::from("   "),
+                true => Text::from(""),
+                false => Text::from(" "),
             };
 
             let mut bar_style = Style::default();

@@ -77,7 +77,7 @@ pub fn render_table(area: Rect, buf: &mut Buffer, folder: &Folder, config: &UICo
     let table = Table::new(
         rows,
         [
-            Constraint::Length(3),
+            Constraint::Length(1),
             Constraint::Length(40),
             Constraint::Length(20),
             Constraint::Length(TABLE_SPACE_WIDTH as u16),
@@ -85,7 +85,7 @@ pub fn render_table(area: Rect, buf: &mut Buffer, folder: &Folder, config: &UICo
     )
     .block(block)
     .header(header)
-    .highlight_symbol(">>> ")
+    .highlight_symbol("> ")
     .highlight_style(selected_style)
     .highlight_spacing(HighlightSpacing::Always);
 
