@@ -49,8 +49,7 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
         let maybe_folder = self.store.get_current_folder();
 
         let debug = DebugData {
-            path_stack: self.task_manager.path_buf_stack.lock().unwrap().len(),
-            threads: *self.task_manager.running_tasks.lock().unwrap(),
+            folders: self.store.get_nodes_len(),
             time_taken,
             fps: format!("{:.1}", fps),
             skipped_frames: format!("{:.1}", self.fps_counter.skipped_frames),

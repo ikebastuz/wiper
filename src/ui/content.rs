@@ -15,11 +15,10 @@ use crate::ui::utils::folder_to_rows;
 const MAX_LOG_LEN: usize = 40;
 #[derive(Debug)]
 pub struct DebugData {
-    pub path_stack: usize,
-    pub threads: usize,
     pub time_taken: Option<u128>,
     pub fps: String,
     pub skipped_frames: String,
+    pub folders: usize,
 }
 
 pub fn render_content(
@@ -108,12 +107,8 @@ pub fn render_debug_panel(area: Rect, buf: &mut Buffer, logger: &Logger, debug_d
         .unwrap_or_else(|| "...".to_string());
 
     let stats_text = Text::from(format!(
-        "Stack -> {} <-> {} <- Threads\nDone in: {}\nFPS: {} | Skipped: {}",
-        debug_data.path_stack,
-        debug_data.threads,
-        time_taken,
-        debug_data.fps,
-        debug_data.skipped_frames
+        "Folders: {}\nDone in: {}\nFPS: {} | Skipped: {}",
+        debug_data.folders, time_taken, debug_data.fps, debug_data.skipped_frames
     ));
 
     let stats_block = Block::default()
