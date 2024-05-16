@@ -5,14 +5,14 @@ pub struct Spinner {
 }
 
 impl Spinner {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Spinner {
             symbols: vec!['⠁', '⠂', '⠄', '⡀', '⢀', '⠠', '⠐', '⠈'],
             current: 0,
         }
     }
 
-    pub fn next(&mut self) -> char {
+    pub fn next_item(&mut self) -> char {
         let symbol = self.symbols[self.current];
         self.current = (self.current + 1) % self.symbols.len();
         symbol
@@ -20,5 +20,11 @@ impl Spinner {
 
     pub fn done(&self) -> char {
         '⣿'
+    }
+}
+
+impl Default for Spinner {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -68,7 +68,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
             store: S::new(),
             logger: Logger::default(),
             fps_counter: FPSCounter::default(),
-            spinner: Spinner::new(),
+            spinner: Spinner::default(),
         };
 
         app.store.set_current_path(&current_path);

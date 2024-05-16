@@ -24,10 +24,10 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
             Constraint::Length(3),
         ]);
 
-        let block_title_symbol = if let Some(_) = time_taken {
+        let block_title_symbol = if time_taken.is_some() {
             self.spinner.done()
         } else {
-            self.spinner.next()
+            self.spinner.next_item()
         };
 
         let block = Block::default()
