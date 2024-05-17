@@ -35,6 +35,12 @@ brew tap ikebastuz/wiper
 brew install wiper
 ```
 
+### Linux
+#### AUR
+```
+paru -S wiper
+```
+
 ## Build from source
 ```bash
 git clone https://github.com/ikebastuz/wiper.git
