@@ -166,7 +166,21 @@ mod delete {
         assert_eq!(app.ui_config.confirming_deletion, false);
         cleanup_testing_files(postfix);
     }
-    //
+
+    #[test]
+    fn resets_delete_after_clicking_escape() {
+        let postfix = "14";
+        create_testing_files(postfix);
+        let mut app: App<DSHashmap> = setup_app_edit(postfix);
+        handle_tasks_synchronously(&mut app);
+
+        app.on_cursor_down();
+        app.on_delete();
+        app.on_escape();
+        assert_eq!(app.ui_config.confirming_deletion, false);
+        cleanup_testing_files(postfix);
+    }
+
     #[test]
     fn deletes_folder() {
         let postfix = "08";
