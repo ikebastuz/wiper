@@ -2,15 +2,16 @@ pub mod common;
 
 use crate::common::*;
 use wiper::app::App;
-use wiper::fs::DSHashmap;
 
 mod cursor {
+
+    use wiper::fs::DataStoreType;
 
     use super::*;
 
     #[test]
     fn updates_cursor_position() {
-        let mut app: App<DSHashmap> = setup_app_view();
+        let mut app: App<DataStoreType> = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
         assert_cursor_index(&mut app, 0);
@@ -24,7 +25,7 @@ mod cursor {
 
     #[test]
     fn stops_cursor_at_very_top() {
-        let mut app: App<DSHashmap> = setup_app_view();
+        let mut app: App<DataStoreType> = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
         assert_cursor_index(&mut app, 0);
@@ -38,7 +39,7 @@ mod cursor {
 
     #[test]
     fn stops_cursor_at_very_bottom() {
-        let mut app: App<DSHashmap> = setup_app_view();
+        let mut app: App<DataStoreType> = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
         for _ in 0..20 {

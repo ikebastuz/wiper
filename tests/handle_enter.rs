@@ -2,14 +2,14 @@ pub mod common;
 use crate::common::*;
 
 use wiper::app::App;
-use wiper::fs::DSHashmap;
+use wiper::fs::DataStoreType;
 mod handle_enter {
 
     use super::*;
 
     #[test]
     fn updates_current_tree_when_enters_subfolder() {
-        let mut app: App<DSHashmap> = setup_app_view();
+        let mut app: App<DataStoreType> = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
         app.on_cursor_down();
@@ -22,7 +22,7 @@ mod handle_enter {
 
     #[test]
     fn navigates_back_to_parent_folder() {
-        let mut app: App<DSHashmap> = setup_app_view();
+        let mut app: App<DataStoreType> = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
         app.on_cursor_down();
@@ -40,7 +40,7 @@ mod handle_enter {
 
     #[test]
     fn does_nothing_when_tries_to_enter_file() {
-        let mut app: App<DSHashmap> = setup_app_view();
+        let mut app: App<DataStoreType> = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
         app.on_cursor_down();

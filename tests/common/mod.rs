@@ -71,6 +71,23 @@ pub fn assert_item_at_index_title<S: DataStore<DataStoreKey>>(
     );
 }
 
+pub fn assert_item_at_index_loading_state<S: DataStore<DataStoreKey>>(
+    app: &App<S>,
+    index: usize,
+    is_loaded: bool,
+) {
+    assert_eq!(
+        app.store
+            .get_current_folder()
+            .unwrap()
+            .entries
+            .get(index)
+            .unwrap()
+            .is_loaded,
+        is_loaded
+    );
+}
+
 pub fn get_entry_by_kind<S: DataStore<DataStoreKey>>(
     app: &App<S>,
     kind: FolderEntryType,

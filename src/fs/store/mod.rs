@@ -54,3 +54,4 @@ pub trait DataStore<T> {
 }
 
 pub type DataStoreKey = PathBuf;
+pub type DataStoreType = DSHashmap;

@@ -7,7 +7,7 @@ use wiper::app::{App, AppResult};
 use wiper::config::InitConfig;
 use wiper::config::EVENT_INTERVAL;
 use wiper::events::{handle_key_events, Event, EventHandler};
-use wiper::fs::DSHashmap;
+use wiper::fs::DataStoreType;
 use wiper::tui::Tui;
 
 fn main() -> AppResult<()> {
@@ -16,7 +16,7 @@ fn main() -> AppResult<()> {
         process::exit(1);
     });
 
-    let mut app: App<DSHashmap> = App::new(config);
+    let mut app: App<DataStoreType> = App::new(config);
     app.init();
 
     let backend = CrosstermBackend::new(io::stderr());

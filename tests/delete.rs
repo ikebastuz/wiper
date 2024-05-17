@@ -1,10 +1,11 @@
 pub mod common;
 use crate::common::*;
 use wiper::app::App;
-use wiper::fs::DSHashmap;
 use wiper::fs::FolderEntryType;
 
 mod delete {
+
+    use wiper::fs::DataStoreType;
 
     use super::*;
     use std::fs::{self, File};
@@ -67,7 +68,7 @@ mod delete {
     fn has_correct_initial_state() {
         let postfix = "01";
         create_testing_files(postfix);
-        let mut app: App<DSHashmap> = setup_app_edit(postfix);
+        let mut app: App<DataStoreType> = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         assert_delete_folder_state(&app);
@@ -78,7 +79,7 @@ mod delete {
     fn does_nothing_when_cursor_is_at_the_top() {
         let postfix = "02";
         create_testing_files(postfix);
-        let mut app: App<DSHashmap> = setup_app_edit(postfix);
+        let mut app: App<DataStoreType> = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         assert_cursor_index(&app, 0);
@@ -95,7 +96,7 @@ mod delete {
     fn does_nothing_when_delete_pressed_once() {
         let postfix = "03";
         create_testing_files(postfix);
-        let mut app: App<DSHashmap> = setup_app_edit(postfix);
+        let mut app: App<DataStoreType> = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         assert_delete_folder_state(&app);
@@ -112,7 +113,7 @@ mod delete {
     fn resets_delete_confirmation_on_cursor_move() {
         let postfix = "04";
         create_testing_files(postfix);
-        let mut app: App<DSHashmap> = setup_app_edit(postfix);
+        let mut app: App<DataStoreType> = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         app.on_delete();
@@ -128,7 +129,7 @@ mod delete {
     fn resets_delete_confirmation_on_folder_enter() {
         let postfix = "05";
         create_testing_files(postfix);
-        let mut app: App<DSHashmap> = setup_app_edit(postfix);
+        let mut app: App<DataStoreType> = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         app.on_cursor_down();
@@ -142,7 +143,7 @@ mod delete {
     fn resets_delete_confirmation_after_deleting_folder() {
         let postfix = "06";
         create_testing_files(postfix);
-        let mut app: App<DSHashmap> = setup_app_edit(postfix);
+        let mut app: App<DataStoreType> = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         app.on_cursor_down();
@@ -156,7 +157,7 @@ mod delete {
     fn resets_delete_confirmation_after_deleting_file() {
         let postfix = "07";
         create_testing_files(postfix);
-        let mut app: App<DSHashmap> = setup_app_edit(postfix);
+        let mut app: App<DataStoreType> = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         app.on_cursor_down();
@@ -171,7 +172,7 @@ mod delete {
     fn resets_delete_after_clicking_escape() {
         let postfix = "14";
         create_testing_files(postfix);
-        let mut app: App<DSHashmap> = setup_app_edit(postfix);
+        let mut app: App<DataStoreType> = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         app.on_cursor_down();
@@ -185,7 +186,7 @@ mod delete {
     fn deletes_folder() {
         let postfix = "08";
         create_testing_files(postfix);
-        let mut app: App<DSHashmap> = setup_app_edit(postfix);
+        let mut app: App<DataStoreType> = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         assert_delete_folder_state(&app);
@@ -203,7 +204,7 @@ mod delete {
     fn deletes_file() {
         let postfix = "09";
         create_testing_files(postfix);
-        let mut app: App<DSHashmap> = setup_app_edit(postfix);
+        let mut app: App<DataStoreType> = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
         assert_delete_folder_state(&app);
         app.on_cursor_down();
@@ -221,7 +222,7 @@ mod delete {
     fn updated_current_folder_size() {
         let postfix = "10";
         create_testing_files(postfix);
-        let mut app: App<DSHashmap> = setup_app_edit(postfix);
+        let mut app: App<DataStoreType> = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         let root_entry = get_current_folder(&app).unwrap();
@@ -243,7 +244,7 @@ mod delete {
     fn deleting_file_updates_parent_folders_sizes() {
         let postfix = "11";
         create_testing_files(postfix);
-        let mut app: App<DSHashmap> = setup_app_edit(postfix);
+        let mut app: App<DataStoreType> = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         let root_entry = get_current_folder(&app).unwrap();
@@ -302,7 +303,7 @@ mod delete {
     fn deleting_folder_updates_parent_folders_sizes() {
         let postfix = "12";
         create_testing_files(postfix);
-        let mut app: App<DSHashmap> = setup_app_edit(postfix);
+        let mut app: App<DataStoreType> = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         let root_entry = get_current_folder(&app).unwrap();
@@ -341,7 +342,7 @@ mod delete {
     fn moves_cursor_one_step_up_after_deleting_bottom_entry() {
         let postfix = "13";
         create_testing_files(postfix);
-        let mut app: App<DSHashmap> = setup_app_edit(postfix);
+        let mut app: App<DataStoreType> = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         for _ in 1..20 {
