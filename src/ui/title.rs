@@ -12,11 +12,8 @@ pub fn render_title(
     maybe_folder: Option<&Folder>,
     ui_config: &UIConfig,
 ) {
-    let vertical_layout = Layout::vertical([Constraint::Max(1)]);
-    let [top_row] = vertical_layout.areas(area);
-
     let horizontal_layout = Layout::horizontal([Constraint::Fill(1), Constraint::Max(23)]);
-    let [left_col, right_col] = horizontal_layout.areas(top_row);
+    let [left_col, right_col] = horizontal_layout.areas(area);
 
     // Folder data
     if let Some(folder) = maybe_folder {
@@ -30,10 +27,10 @@ pub fn render_title(
         .render(left_col, buf);
     }
 
+    // Settings
     let config_layout = Layout::horizontal([Constraint::Max(12), Constraint::Max(11)]);
     let [col_color, col_trash] = config_layout.areas(right_col);
 
-    // Settings
     let text_color = color_capital_letter(
         "Colored: ".into(),
         None,

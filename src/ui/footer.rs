@@ -1,11 +1,10 @@
-use crate::ui::constants::TEXT_HINT_L1;
+use crate::ui::constants::TEXT_HINT_NAVIGATE;
 use ratatui::{prelude::*, widgets::*};
 
 use super::utils::color_capital_letter;
 
 pub fn render_footer(area: Rect, buf: &mut Buffer) {
-    let block = Block::default().padding(Padding::vertical(1));
-
+    let block = Block::default().padding(Padding::top(1));
     let inner_area = block.inner(area);
     Widget::render(block, area, buf);
 
@@ -21,7 +20,7 @@ pub fn render_footer(area: Rect, buf: &mut Buffer) {
     let text_sort = color_capital_letter("Sort,".into(), None, None);
     let text_quit = color_capital_letter("Quit".into(), None, None);
 
-    Paragraph::new(TEXT_HINT_L1)
+    Paragraph::new(TEXT_HINT_NAVIGATE)
         .left_aligned()
         .render(col_navigate, buf);
     Paragraph::new(text_delete)

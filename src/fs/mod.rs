@@ -24,25 +24,35 @@ pub fn path_to_folder(path: PathBuf) -> Folder {
         .unwrap_or(TEXT_UNKNOWN);
     let mut folder = Folder::new(folder_name.to_string());
 
-    let path = read_dir(path.clone()).expect("Failed to read directory");
-    for entry in path.into_iter().flatten() {
-        let file_name = entry.file_name();
-        if let Some(file_name) = file_name.to_str() {
-            let mut folder_entry = FolderEntry {
-                kind: FolderEntryType::File,
-                title: file_name.to_owned(),
-                size: None,
-                is_loaded: true,
-            };
-            if entry.path().is_dir() {
-                folder_entry.kind = FolderEntryType::Folder;
-            } else {
-                let metadata = entry.metadata().expect("Failed to get metadata");
-                let size = metadata.len();
-
-                folder_entry.size = Some(size);
+    match read_dir(path.clone()) {
+        Ok(path) => {
+            for entry in path.into_iter().flatten() {
+                let file_name = entry.file_name();
+                if let Some(file_name) = file_name.to_str() {
+                    let mut folder_entry = FolderEntry {
+                        kind: FolderEntryType::File,
+                        title: file_name.to_owned(),
+                        size: None,
+                        is_loaded: true,
+                    };
+                    if entry.path().is_dir() {
+                        folder_entry.kind = FolderEntryType::Folder;
+                    } else {
+                        match entry.metadata() {
+                            Ok(metadata) => {
+                                folder_entry.size = Some(metadata.len());
+                            }
+                            Err(_) => {
+                                folder.has_error = true;
+                            }
+                        }
+                    }
+                    folder.entries.push(folder_entry);
+                }
             }
-            folder.entries.push(folder_entry);
+        }
+        Err(_) => {
+            folder.has_error = true;
         }
     }
 

@@ -11,6 +11,7 @@ pub struct Folder {
     pub cursor_index: usize,
     pub sorted_by: Option<SortBy>,
     pub entries: Vec<FolderEntry>,
+    pub has_error: bool,
 }
 
 impl Folder {
@@ -25,6 +26,7 @@ impl Folder {
                 size: None,
                 is_loaded: true,
             }],
+            has_error: false,
         }
     }
 

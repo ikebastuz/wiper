@@ -19,6 +19,7 @@ pub struct DebugData {
     pub fps: String,
     pub skipped_frames: String,
     pub folders: usize,
+    pub spin_symbol: (char, char),
 }
 
 pub fn render_content(
@@ -28,21 +29,20 @@ pub fn render_content(
     config: &UIConfig,
     logger: &Logger,
     debug_data: &DebugData,
-    loading_indicator: char,
 ) {
     let horizontal_layout = Layout::horizontal(match config.debug_enabled {
         true => [Constraint::Min(1), Constraint::Min(1)],
         false => [Constraint::Min(1), Constraint::Max(0)],
     });
 
-    let [left_col, right_col] = horizontal_layout.areas(area);
+    let [content_col, debug_col] = horizontal_layout.areas(area);
 
     if let Some(folder) = maybe_folder {
-        render_table(left_col, buf, folder, config, loading_indicator);
+        render_table(content_col, buf, folder, config, debug_data.spin_symbol.0);
     }
 
     if config.debug_enabled {
-        render_debug_panel(right_col, buf, logger, debug_data);
+        render_debug_panel(debug_col, buf, logger, debug_data);
     }
 }
 

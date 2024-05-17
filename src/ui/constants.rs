@@ -13,4 +13,4 @@ pub const TABLE_SPACE_WIDTH: usize = 40;
 pub const TEXT_UNKNOWN: &str = "N/A";
 pub const TEXT_PARENT_DIR: &str = "..";
 pub const TEXT_TITLE: &str = "Wiper";
-pub const TEXT_HINT_L1: &str = "←↓↑→/Enter/Backspace - navigate";
+pub const TEXT_HINT_NAVIGATE: &str = "←↓↑→/Enter/Backspace - navigate";
