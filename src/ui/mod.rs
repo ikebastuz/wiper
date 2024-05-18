@@ -64,15 +64,15 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
         ]);
         let [header_area, rest_area, footer_area] = vertical.areas(inner_area);
 
-        render_title(header_area, buf, maybe_folder, &self.ui_config);
-        render_content(
-            rest_area,
-            buf,
-            maybe_folder,
-            &self.ui_config,
-            &self.logger,
-            &debug,
-        );
-        render_footer(footer_area, buf);
+        // render_title(header_area, buf, maybe_folder, &self.ui_config);
+        // render_content(
+        //     rest_area,
+        //     buf,
+        //     maybe_folder,
+        //     &self.ui_config,
+        //     &self.logger,
+        //     &debug,
+        // );
+        // render_footer(footer_area, buf);
     }
 }

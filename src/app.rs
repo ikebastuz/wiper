@@ -2,9 +2,11 @@ use opener;
 use std::error;
 
 use crate::fps_counter::FPSCounter;
-use crate::fs::{delete_file, delete_folder, DataStore, DataStoreKey, FolderEntryType, SortBy};
+use crate::fs::{
+    delete_file, delete_folder, DSHashmap, DataStore, DataStoreKey, FolderEntryType, SortBy,
+};
 use crate::spinner::Spinner;
-use crate::task_manager::TaskManager;
+use crate::task_manager::{TaskManager, TaskManagerNg};
 use std::path::{Path, PathBuf};
 
 use crate::config::{InitConfig, UIConfig};
@@ -28,6 +30,7 @@ pub struct App<S: DataStore<DataStoreKey>> {
     pub running: bool,
     /// Task manager for async jobs
     pub task_manager: TaskManager<S>,
+    pub task_manager_ng: TaskManagerNg<S>,
     /// Store for filesystem data
     pub store: S,
     /// Debug logger
@@ -65,6 +68,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                 debug_enabled: false,
             },
             task_manager: TaskManager::<S>::default(),
+            task_manager_ng: TaskManagerNg::<S>::new(),
             store: S::new(),
             logger: Logger::default(),
             fps_counter: FPSCounter::default(),
@@ -80,12 +84,15 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         let path_buf = self.store.get_current_path().clone();
         self.logger
             .log(path_buf.to_string_lossy().to_string(), MessageLevel::Info);
-        self.task_manager.maybe_add_task(&self.store, &path_buf);
+        // self.task_manager.maybe_add_task(&self.store, &path_buf);
+
+        self.task_manager_ng.start(vec![path_buf]);
     }
 
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
-        self.task_manager.handle_results(&mut self.store);
+        self.task_manager_ng.process_results(&mut self.store);
+        // self.task_manager.handle_results(&mut self.store);
     }
 
     /// Set running to false to quit the application.
