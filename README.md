@@ -51,3 +51,21 @@ cargo build --release
 ## Contributing
 If you have any suggestions, improvements, or bug fixes, feel free to open an issue or submit a pull request.
 Current list of TODOs you can find [here](src/README.md)
+
+## Why not [dua-cli](https://github.com/Byron/dua-cli)?
+I started this project as part of my journey to learn Rust. I always missed having such a tool but had never heard of dua-cli. From my understanding, there are some differences:
+
+#### Pros:
+- Wiper allows navigating to the parent directory at any time
+- Supports opening files with the default system app
+- Simpler deletion flow
+
+#### Cons:
+- It is 10-15 times slower because of manually implemented file traversal. I plan to rewrite it in the same way as dua-cli (with `jwalk`)
+- Does not have filtering functionality
+- Not capable of marking multiple entries for deletion
+
+#### Subjective:
+- The UI is more "elegant" :)
+- Shows a "full" space-taken bar for the largest entry. So there will always be at least one entry with a full bar. If dua-cli has two large entries of similar size, they will be shown as approximately 50% bars.
+
