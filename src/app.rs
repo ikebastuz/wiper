@@ -33,6 +33,7 @@ pub struct App<S: DataStore<DataStoreKey>> {
     pub task_manager_ng: TaskManagerNg<S>,
     /// Store for filesystem data
     pub store: S,
+    pub store_ng: S,
     /// Debug logger
     pub logger: Logger,
     /// FPS Counter
@@ -70,12 +71,14 @@ impl<S: DataStore<DataStoreKey>> App<S> {
             task_manager: TaskManager::<S>::default(),
             task_manager_ng: TaskManagerNg::<S>::new(),
             store: S::new(),
+            store_ng: S::new(),
             logger: Logger::default(),
             fps_counter: FPSCounter::default(),
             spinner: Spinner::default(),
         };
 
         app.store.set_current_path(&current_path);
+        app.store_ng.set_current_path(&current_path);
 
         app
     }
@@ -84,15 +87,16 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         let path_buf = self.store.get_current_path().clone();
         self.logger
             .log(path_buf.to_string_lossy().to_string(), MessageLevel::Info);
-        // self.task_manager.maybe_add_task(&self.store, &path_buf);
+        self.task_manager.maybe_add_task(&self.store, &path_buf);
 
         self.task_manager_ng.start(vec![path_buf]);
     }
 
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
-        self.task_manager_ng.process_results(&mut self.store);
-        // self.task_manager.handle_results(&mut self.store);
+        self.task_manager_ng
+            .process_results(&mut self.store_ng, &mut self.logger);
+        self.task_manager.handle_results(&mut self.store);
     }
 
     /// Set running to false to quit the application.

@@ -1,4 +1,5 @@
-use crate::fs::{DataStore, DataStoreKey};
+use crate::fs::{DataStore, DataStoreKey, Folder, FolderEntry, FolderEntryType};
+use crate::logger::{Logger, MessageLevel};
 use crossbeam::channel::{Receiver, Sender};
 use std::marker::PhantomData;
 use std::path::PathBuf;
@@ -23,6 +24,7 @@ pub enum TraversalEvent {
 pub struct TaskManagerNg<S: DataStore<DataStoreKey>> {
     pub event_tx: Sender<TraversalEvent>,
     pub event_rx: Receiver<TraversalEvent>,
+    pub temp_has_work: bool,
     _store: PhantomData<S>,
 }
 
@@ -32,11 +34,13 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
         Self {
             event_rx: entry_rx,
             event_tx: entry_tx,
+            temp_has_work: false,
             _store: PhantomData,
         }
     }
 
     pub fn start(&mut self, input: Vec<DataStoreKey>) {
+        self.temp_has_work = true;
         let entry_tx = self.event_tx.clone();
         let _ = std::thread::Builder::new()
             .name("wiper-walk-dispatcher".to_string())
@@ -44,14 +48,9 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                 move || {
                     for root_path in input.into_iter() {
                         for entry in Self::iter_from_path(&root_path).into_iter() {
-                            match entry_tx.clone().send(TraversalEvent::Entry(entry)) {
-                                Ok(_) => {}
-                                Err(e) => {
-                                    // The channel is closed, this means the user has
-                                    // requested to quit the app. Abort the walking.
-                                    println!("Send err: {}", e);
-                                    return;
-                                }
+                            if entry_tx.send(TraversalEvent::Entry(entry)).is_err() {
+                                println!("Send err: channel closed");
+                                return;
                             }
                         }
                     }
@@ -60,39 +59,45 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
             });
     }
 
-    pub fn process_results(&mut self, store: &S) {
-        crossbeam::select! {
-            recv(&self.event_rx) -> event_result => {
-                println!("Something");
-                match event_result {
-                    Ok(event) => {
-                        match event {
-                            TraversalEvent::Entry(entry) => {
-                                match entry {
-                                    Ok(e) => {
-                                        let parent_path = e.parent_path;
-                                        let title = e.file_name;
-                                        let size = match e.client_state.as_ref() {
-                                            Some(Ok(my_entry)) => my_entry.size,
-                                            _ => 0,
-                                        };
+    pub fn process_results(&mut self, store: &mut S, logger: &mut Logger) {
+        while let Ok(event) = self.event_rx.try_recv() {
+            match event {
+                TraversalEvent::Entry(entry) => match entry {
+                    Ok(e) => {
+                        let parent_path = e.parent_path;
+                        let title = e.file_name;
+                        let size = match e.client_state.as_ref() {
+                            Some(Ok(my_entry)) => my_entry.size,
+                            _ => 0,
+                        };
 
-                                        let parent_folder = store.get_folder_mut(&parent_path.to_path_buf());
+                        let folder_entry = FolderEntry {
+                            title: title.to_string_lossy().to_string(),
+                            size: Some(size),
+                            is_loaded: true,
+                            kind: FolderEntryType::File,
+                        };
+                        let parent_folder = store.get_folder_mut(&parent_path.to_path_buf());
 
-                                        println!("parent: {:#?} | title: {:#?} | size: {}", parent_path, title, size);
-                                    }
-                                    Err(_) => {}
-                                }
-
+                        match parent_folder {
+                            Some(folder) => {
+                                folder.entries.push(folder_entry);
                             }
-                            TraversalEvent::Finished(errors) => {
-                                println!("Finished with errors: {}", errors);
+                            None => {
+                                let mut folder = Folder::new(title.to_string_lossy().to_string());
+                                folder.entries.push(folder_entry);
+                                store.set_folder(&PathBuf::from(parent_path.to_path_buf()), folder)
                             }
                         }
                     }
-                    Err(_) => {}
+                    Err(_) => {
+                        logger.log(format!("Done?"), MessageLevel::Info);
+                    }
+                },
+                TraversalEvent::Finished(_) => {
+                    self.temp_has_work = false;
+                    logger.log("Finished processing".into(), MessageLevel::Info);
                 }
-
             }
         }
     }

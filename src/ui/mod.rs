@@ -1,4 +1,5 @@
 use crate::fs::DataStore;
+use crate::logger::MessageLevel;
 use crate::{app::App, fs::DataStoreKey};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
@@ -18,7 +19,7 @@ use self::constants::{TEXT_COLOR, TEXT_PRE_DELETED_BG};
 impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         self.pre_render();
-        let maybe_folder = self.store.get_current_folder();
+        let maybe_folder = self.store_ng.get_current_folder();
 
         // Helper data
         let fps = self.fps_counter.update();
@@ -46,6 +47,10 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
             }
             None => {}
         }
+        // self.logger.log(
+        //     format!("Rendering, folder?: {:#?}", maybe_folder.is_some()),
+        //     MessageLevel::Info,
+        // );
         let block = Block::default()
             .title(format!(" {} {} {} ", spin_left, title, spin_right))
             .title_alignment(Alignment::Center)
@@ -64,15 +69,15 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
         ]);
         let [header_area, rest_area, footer_area] = vertical.areas(inner_area);
 
-        // render_title(header_area, buf, maybe_folder, &self.ui_config);
-        // render_content(
-        //     rest_area,
-        //     buf,
-        //     maybe_folder,
-        //     &self.ui_config,
-        //     &self.logger,
-        //     &debug,
-        // );
-        // render_footer(footer_area, buf);
+        render_title(header_area, buf, maybe_folder, &self.ui_config);
+        render_content(
+            rest_area,
+            buf,
+            maybe_folder,
+            &self.ui_config,
+            &self.logger,
+            &debug,
+        );
+        render_footer(footer_area, buf);
     }
 }
