@@ -4,7 +4,7 @@ use crate::fs::FolderEntryType;
 use crate::ui::constants::{NORMAL_ROW_COLOR, TABLE_SPACE_WIDTH, TEXT_UNKNOWN};
 use ratatui::{prelude::*, widgets::*};
 
-use super::constants::TEXT_HIGHLIGHTED;
+use super::constants::{TEXT_HIGHLIGHTED, TEXT_ICON_FOLDER_ASCII};
 
 pub fn format_file_size(size: u64) -> String {
     const KB: u64 = 1024;
@@ -76,11 +76,11 @@ pub fn folder_to_rows<'a>(
                 None => (Text::from(TEXT_UNKNOWN), Text::from(" "), NORMAL_ROW_COLOR),
             };
             let mut prefix = match item.kind == FolderEntryType::Folder {
-                true => Text::from(""),
-                false => Text::from(" "),
+                true => Text::from(TEXT_ICON_FOLDER_ASCII),
+                false => Text::from("  "),
             };
             if item.is_loaded == false {
-                prefix = Text::from(String::from(loading_indicator));
+                prefix = Text::from(format!("[{}]", loading_indicator));
             }
 
             let mut bar_style = Style::default();
