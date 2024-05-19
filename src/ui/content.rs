@@ -15,7 +15,6 @@ use crate::ui::utils::folder_to_rows;
 const MAX_LOG_LEN: usize = 180;
 #[derive(Debug)]
 pub struct DebugData {
-    pub time_taken: Option<u128>,
     pub fps: String,
     pub skipped_frames: String,
     pub folders: usize,
@@ -107,15 +106,9 @@ pub fn render_table(
 pub fn render_debug_panel(area: Rect, buf: &mut Buffer, logger: &Logger, debug_data: &DebugData) {
     let [top, bottom] = Layout::vertical([Constraint::Max(5), Constraint::Fill(1)]).areas(area);
 
-    // Stats
-    let time_taken = debug_data
-        .time_taken
-        .map(|t| t.to_string())
-        .unwrap_or_else(|| "...".to_string());
-
     let stats_text = Text::from(format!(
-        "Folders: {}\nDone in: {}\nFPS: {} | Skipped: {}",
-        debug_data.folders, time_taken, debug_data.fps, debug_data.skipped_frames
+        "Folders: {}\nFPS: {} | Skipped: {}",
+        debug_data.folders, debug_data.fps, debug_data.skipped_frames
     ));
 
     let stats_block = Block::default()

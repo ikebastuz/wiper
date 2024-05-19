@@ -1,5 +1,4 @@
 use crate::fs::DataStore;
-use crate::logger::MessageLevel;
 use crate::{app::App, fs::DataStoreKey};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
@@ -23,18 +22,15 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
 
         // Helper data
         let fps = self.fps_counter.update();
-        let time_taken = self.task_manager.time_taken();
-        let (spin_left, spin_right) = self.spinner.get_icons(time_taken.is_some());
+        let (spin_left, spin_right) = self.spinner.get_icons(true);
         let debug = DebugData {
-            folders: self.store.get_nodes_len(),
-            time_taken,
+            folders: self.store_ng.get_nodes_len(),
             fps: format!("{:.1}", fps),
             skipped_frames: format!("{:.1}", self.fps_counter.skipped_frames),
             spin_symbol: (spin_left, spin_right),
         };
 
         // Main wrapper
-
         let mut title = TEXT_TITLE;
         let mut border_color = TEXT_COLOR;
 
@@ -47,10 +43,6 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
             }
             None => {}
         }
-        // self.logger.log(
-        //     format!("Rendering, folder?: {:#?}", maybe_folder.is_some()),
-        //     MessageLevel::Info,
-        // );
         let block = Block::default()
             .title(format!(" {} {} {} ", spin_left, title, spin_right))
             .title_alignment(Alignment::Center)
