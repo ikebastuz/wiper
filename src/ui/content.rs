@@ -12,7 +12,7 @@ use crate::ui::constants::{
 };
 use crate::ui::utils::folder_to_rows;
 
-const MAX_LOG_LEN: usize = 40;
+const MAX_LOG_LEN: usize = 80;
 #[derive(Debug)]
 pub struct DebugData {
     pub time_taken: Option<u128>,

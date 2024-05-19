@@ -35,7 +35,7 @@ impl Logger {
             .expect("Time went backwards")
             .as_millis();
 
-        if self.messages.len() >= 10 {
+        if self.messages.len() >= 30 {
             self.messages.pop_back();
         }
         self.messages.push_front((timestamp, level, message));

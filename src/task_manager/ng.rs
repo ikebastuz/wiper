@@ -76,51 +76,78 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                             _ => 0,
                         };
 
-                        let folder_entry = FolderEntry {
+                        let mut folder_entry = FolderEntry {
                             title: title.clone(),
                             size: Some(size),
                             is_loaded: true,
                             kind,
                         };
 
+                        // if folder_entry.kind == FolderEntryType::Folder {
+                        //     let mut temp = PathBuf::from(parent_path.clone());
+                        //     temp.push(folder_entry.title.clone());
+                        //     let folder_entry_object = store.get_folder_mut(&temp);
+                        //
+                        //     if let Some(f) = folder_entry_object {
+                        //         for c in f.entries.clone().into_iter() {
+                        //             folder_entry.increment_size(c.size.unwrap_or(0));
+                        //         }
+                        //     }
+                        // }
+
                         let parent_folder = store.get_folder_mut(&parent_path.to_path_buf());
 
                         match parent_folder {
                             Some(folder) => {
+                                if folder_entry.kind == FolderEntryType::Folder {
+                                    for c in folder.entries.clone().into_iter() {
+                                        folder_entry.increment_size(c.size.unwrap_or(0));
+                                    }
+                                }
                                 folder.entries.push(folder_entry);
                             }
                             None => {
-                                let mut folder = Folder::new(title);
+                                let mut folder = Folder::new(title.clone());
                                 folder.entries.push(folder_entry);
                                 store.set_folder(&PathBuf::from(parent_path.to_path_buf()), folder);
                             }
                         };
                         // --------------
                         // Update parent's sizes
-                        // let mut folder_traverse = parent_folder.clone();
-                        // let mut path_traverse = parent_path.to_path_buf();
-                        //
-                        // while let Some(parent_buf) = path_traverse.parent() {
-                        //     if parent_buf == path_traverse {
-                        //         break;
-                        //     }
-                        //     if let Some(parent_folder) =
-                        //         store.get_folder_mut(&PathBuf::from(parent_buf))
-                        //     {
-                        //         for entry in parent_folder.entries.iter_mut() {
-                        //             if entry.title == folder_traverse.title {
-                        //                 entry.size = Some(folder_traverse.get_size());
-                        //                 parent_folder.sorted_by = None;
-                        //
-                        //                 break;
-                        //             }
-                        //         }
-                        //         folder_traverse = parent_folder.clone();
-                        //         path_traverse = parent_buf.to_path_buf();
-                        //     } else {
-                        //         break;
-                        //     }
-                        // }
+                        let mut title_traverse = parent_path.file_name().unwrap().to_string_lossy();
+                        let mut path_traverse = parent_path.to_path_buf();
+
+                        while let Some(parent_buf) = path_traverse.parent() {
+                            if parent_buf == path_traverse {
+                                logger.log(
+                                    format!(
+                                        "No parent for {:#?}",
+                                        path_traverse.file_name().unwrap(),
+                                    ),
+                                    None,
+                                );
+                                break;
+                            }
+                            if let Some(parent_folder) =
+                                store.get_folder_mut(&PathBuf::from(parent_buf))
+                            {
+                                for entry in parent_folder.entries.iter_mut() {
+                                    if entry.title == title_traverse {
+                                        entry.increment_size(size);
+                                        parent_folder.sorted_by = None;
+                                        logger.log(
+                                            format!("{} + {} from {}", title_traverse, size, title),
+                                            None,
+                                        );
+                                        break;
+                                    }
+                                }
+                                title_traverse = parent_folder.title.clone().into();
+                                path_traverse = parent_buf.to_path_buf();
+                            } else {
+                                break;
+                            }
+                        }
                     }
                     Err(_) => {
                         logger.log(format!("Done?"), None);

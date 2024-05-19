@@ -156,9 +156,10 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     // MIGRATE: DONE
     fn navigate_to_parent(&mut self) {
         let to_process_subfolders = self.store.move_to_parent();
+        let to_process_subfolders_ng = self.store_ng.move_to_parent();
 
         self.task_manager_ng
-            .start(to_process_subfolders.clone(), &mut self.logger);
+            .start(to_process_subfolders_ng, &mut self.logger);
 
         self.logger.log(
             self.store.get_current_path().to_string_lossy().to_string(),
