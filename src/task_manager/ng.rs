@@ -1,5 +1,5 @@
 use crate::fs::{DataStore, DataStoreKey, Folder, FolderEntry, FolderEntryType};
-use crate::logger::{Logger, MessageLevel};
+use crate::logger::Logger;
 use crossbeam::channel::{Receiver, Sender};
 use std::marker::PhantomData;
 use std::path::PathBuf;
@@ -39,7 +39,8 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
         }
     }
 
-    pub fn start(&mut self, input: Vec<DataStoreKey>) {
+    pub fn start(&mut self, input: Vec<DataStoreKey>, logger: &mut Logger) {
+        logger.start_timer("NG-start");
         self.temp_has_work = true;
         let entry_tx = self.event_tx.clone();
         let _ = std::thread::Builder::new()
@@ -86,17 +87,43 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                             None => {
                                 let mut folder = Folder::new(title.to_string_lossy().to_string());
                                 folder.entries.push(folder_entry);
-                                store.set_folder(&PathBuf::from(parent_path.to_path_buf()), folder)
+                                store.set_folder(&PathBuf::from(parent_path.to_path_buf()), folder);
                             }
-                        }
+                        };
+                        // --------------
+                        // Update parent's sizes
+                        // let mut folder_traverse = parent_folder.clone();
+                        // let mut path_traverse = parent_path.to_path_buf();
+                        //
+                        // while let Some(parent_buf) = path_traverse.parent() {
+                        //     if parent_buf == path_traverse {
+                        //         break;
+                        //     }
+                        //     if let Some(parent_folder) =
+                        //         store.get_folder_mut(&PathBuf::from(parent_buf))
+                        //     {
+                        //         for entry in parent_folder.entries.iter_mut() {
+                        //             if entry.title == folder_traverse.title {
+                        //                 entry.size = Some(folder_traverse.get_size());
+                        //                 parent_folder.sorted_by = None;
+                        //
+                        //                 break;
+                        //             }
+                        //         }
+                        //         folder_traverse = parent_folder.clone();
+                        //         path_traverse = parent_buf.to_path_buf();
+                        //     } else {
+                        //         break;
+                        //     }
+                        // }
                     }
                     Err(_) => {
-                        logger.log(format!("Done?"), MessageLevel::Info);
+                        logger.log(format!("Done?"), None);
                     }
                 },
                 TraversalEvent::Finished(_) => {
                     self.temp_has_work = false;
-                    logger.log("Finished processing".into(), MessageLevel::Info);
+                    logger.stop_timer("NG-start");
                 }
             }
         }

@@ -86,10 +86,10 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     pub fn init(&mut self) {
         let path_buf = self.store.get_current_path().clone();
         self.logger
-            .log(path_buf.to_string_lossy().to_string(), MessageLevel::Info);
+            .log(path_buf.to_string_lossy().to_string(), None);
         self.task_manager.maybe_add_task(&self.store, &path_buf);
 
-        self.task_manager_ng.start(vec![path_buf]);
+        self.task_manager_ng.start(vec![path_buf], &mut self.logger);
     }
 
     /// Handles the tick event of the terminal.
@@ -155,11 +155,12 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     fn navigate_to_parent(&mut self) {
         let to_process_subfolders = self.store.move_to_parent();
 
-        self.task_manager_ng.start(to_process_subfolders.clone());
+        self.task_manager_ng
+            .start(to_process_subfolders.clone(), &mut self.logger);
 
         self.logger.log(
             self.store.get_current_path().to_string_lossy().to_string(),
-            MessageLevel::Info,
+            None,
         );
         for subfolder in to_process_subfolders {
             self.task_manager.maybe_add_task(&self.store, &subfolder);
@@ -169,7 +170,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     fn navigate_to_child(&mut self, title: &str) {
         let child_path = self.store.move_to_child(title);
         self.logger
-            .log(child_path.to_string_lossy().to_string(), MessageLevel::Info);
+            .log(child_path.to_string_lossy().to_string(), None);
         self.task_manager.maybe_add_task(&self.store, &child_path);
     }
 
