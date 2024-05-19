@@ -155,6 +155,8 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     fn navigate_to_parent(&mut self) {
         let to_process_subfolders = self.store.move_to_parent();
 
+        self.task_manager_ng.start(to_process_subfolders.clone());
+
         self.logger.log(
             self.store.get_current_path().to_string_lossy().to_string(),
             MessageLevel::Info,
