@@ -1,6 +1,7 @@
 use crate::fs::{DataStore, DataStoreKey, Folder, FolderEntry, FolderEntryType};
 use crate::logger::Logger;
 use crossbeam::channel::{Receiver, Sender};
+use std::ffi::OsStr;
 use std::marker::PhantomData;
 use std::path::PathBuf;
 
@@ -65,8 +66,9 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
             match event {
                 TraversalEvent::Entry(entry) => match entry {
                     Ok(e) => {
-                        let parent_path = e.parent_path.to_path_buf();
+                        let belongs_to = e.parent_path.to_path_buf();
                         let title = e.file_name.to_string_lossy().to_string();
+                        logger.log(format!("[Received] {} <- {:#?}", title, belongs_to), None);
                         let kind: FolderEntryType = match e.file_type().is_dir() {
                             true => FolderEntryType::Folder,
                             false => FolderEntryType::File,
@@ -83,41 +85,54 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                             kind,
                         };
 
-                        // if folder_entry.kind == FolderEntryType::Folder {
-                        //     let mut temp = PathBuf::from(parent_path.clone());
-                        //     temp.push(folder_entry.title.clone());
-                        //     let folder_entry_object = store.get_folder_mut(&temp);
-                        //
-                        //     if let Some(f) = folder_entry_object {
-                        //         for c in f.entries.clone().into_iter() {
-                        //             folder_entry.increment_size(c.size.unwrap_or(0));
-                        //         }
-                        //     }
-                        // }
-
-                        let parent_folder = store.get_folder_mut(&parent_path.to_path_buf());
+                        let parent_folder = store.get_folder_mut(&belongs_to.to_path_buf());
 
                         match parent_folder {
                             Some(folder) => {
-                                if folder_entry.kind == FolderEntryType::Folder {
-                                    for c in folder.entries.clone().into_iter() {
-                                        folder_entry.increment_size(c.size.unwrap_or(0));
-                                    }
-                                }
+                                // if folder_entry.kind == FolderEntryType::Folder {
+                                //     for c in folder.entries.clone().into_iter() {
+                                //         folder_entry.increment_size(c.size.unwrap_or(0));
+                                //     }
+                                // }
                                 folder.entries.push(folder_entry);
                             }
                             None => {
-                                let mut folder = Folder::new(title.clone());
+                                // if title == "folder.rs" {
+                                //     panic!("qwe");
+                                // }
+                                // let mut folder = Folder::new(title.clone());
+                                let mut folder = Folder::new(String::from(
+                                    belongs_to
+                                        .file_name()
+                                        .unwrap() // CONTINUE FROM HERE
+                                        .to_string_lossy()
+                                        .to_string(),
+                                ));
                                 folder.entries.push(folder_entry);
-                                store.set_folder(&PathBuf::from(parent_path.to_path_buf()), folder);
+                                store.set_folder(&PathBuf::from(belongs_to.to_path_buf()), folder);
                             }
                         };
                         // --------------
                         // Update parent's sizes
-                        let mut title_traverse = parent_path.file_name().unwrap().to_string_lossy();
-                        let mut path_traverse = parent_path.to_path_buf();
+
+                        let mut title_traverse = belongs_to.file_name().unwrap().to_string_lossy();
+                        let mut path_traverse = belongs_to.to_path_buf();
+                        // let mut path_traverse = PathBuf::from(belongs_to.to_path_buf());
+                        // path_traverse.push(title.clone());
+                        logger.log(
+                            format!("[Pre-bubble] T:{}, P:{:#?}", title_traverse, path_traverse),
+                            None,
+                        );
 
                         while let Some(parent_buf) = path_traverse.parent() {
+                            logger.log(
+                                format!(
+                                    "[Bubble] Updating {:#?} -> {}",
+                                    parent_buf.file_name().unwrap(),
+                                    title_traverse
+                                ),
+                                None,
+                            );
                             if parent_buf == path_traverse {
                                 logger.log(
                                     format!(
@@ -128,15 +143,31 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                                 );
                                 break;
                             }
+                            logger.log(
+                                format!("Getting folder for {:#?}", PathBuf::from(parent_buf)),
+                                None,
+                            );
                             if let Some(parent_folder) =
                                 store.get_folder_mut(&PathBuf::from(parent_buf))
                             {
-                                for entry in parent_folder.entries.iter_mut() {
-                                    if entry.title == title_traverse {
-                                        entry.increment_size(size);
+                                logger
+                                    .log(format!("[Parent folder] {}", parent_folder.title), None);
+                                for child in parent_folder.entries.iter_mut() {
+                                    if child.title == title_traverse
+                                        && child.kind == FolderEntryType::Folder
+                                    {
+                                        let size_before = child.size.unwrap_or(0);
+                                        child.increment_size(size);
                                         parent_folder.sorted_by = None;
                                         logger.log(
-                                            format!("{} + {} from {}", title_traverse, size, title),
+                                            format!(
+                                                "{} <- {} : {}+{}={}",
+                                                title_traverse,
+                                                title,
+                                                size_before,
+                                                size,
+                                                child.size.unwrap_or(0)
+                                            ),
                                             None,
                                         );
                                         break;
@@ -145,6 +176,10 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                                 title_traverse = parent_folder.title.clone().into();
                                 path_traverse = parent_buf.to_path_buf();
                             } else {
+                                logger.log(
+                                    format!("No parent for {:#?}", parent_buf.file_name().unwrap()),
+                                    None,
+                                );
                                 break;
                             }
                         }
@@ -156,6 +191,21 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                 TraversalEvent::Finished(_) => {
                     self.temp_has_work = false;
                     logger.stop_timer("TM-NG-proc");
+
+                    // logger.log(
+                    //     format!(
+                    //         "E: {:#?}",
+                    //         store
+                    //             .get_keys()
+                    //             .into_iter()
+                    //             .filter_map(|k| k
+                    //                 .file_name()
+                    //                 .and_then(OsStr::to_str)
+                    //                 .map(String::from))
+                    //             .collect::<Vec<String>>()
+                    //     ),
+                    //     None,
+                    // );
                 }
             }
         }

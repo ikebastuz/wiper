@@ -51,6 +51,8 @@ pub trait DataStore<T> {
 
     /// Processes received folder, stores, returns array of paths to process later
     fn process_path(&mut self, path: &T) -> Vec<T>;
+
+    fn get_keys(&mut self) -> Vec<T>;
 }
 
 pub type DataStoreKey = PathBuf;

@@ -151,4 +151,8 @@ impl DataStore<DataStoreKey> for DSHashmap {
             to_process_subfolders
         }
     }
+
+    fn get_keys(&mut self) -> Vec<PathBuf> {
+        self.store.keys().cloned().collect()
+    }
 }
