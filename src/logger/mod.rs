@@ -42,8 +42,10 @@ impl Logger {
     }
 
     pub fn start_timer(&mut self, name: &str) {
-        let timestamp = SystemTime::now();
-        self.timers.insert(name.to_string(), timestamp);
+        if self.timers.get(&name.to_string()).is_none() {
+            let timestamp = SystemTime::now();
+            self.timers.insert(name.to_string(), timestamp);
+        }
     }
 
     pub fn stop_timer(&mut self, name: &str) {

@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::SystemTime;
 
+use crate::logger::{Logger, MessageLevel};
 mod ng;
 
 pub use ng::TaskManagerNg;
@@ -80,13 +81,13 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         }
     }
 
-    pub fn add_task(&mut self, path_buf: &Path) {
+    pub fn add_task(&mut self, path_buf: &Path, logger: &mut Logger) {
         {
             let mut stack = self.path_buf_stack.lock().unwrap();
             stack.push_back(path_buf.to_path_buf());
         } // Lock is released here
 
-        self.maybe_start_timer();
+        self.maybe_start_timer(logger);
     }
 
     pub fn is_done(&self) -> bool {
@@ -95,29 +96,35 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         stack.is_empty() && *running_tasks == 0
     }
 
-    pub fn maybe_add_task(&mut self, store: &S, path_buf: &PathBuf) -> bool {
+    pub fn maybe_add_task(&mut self, store: &S, path_buf: &PathBuf, logger: &mut Logger) -> bool {
         if !store.has_path(path_buf) {
-            self.add_task(path_buf);
+            self.add_task(path_buf, logger);
             true
         } else {
             false
         }
     }
 
-    pub fn handle_results(&mut self, store: &mut S) {
+    pub fn handle_results(&mut self, store: &mut S, logger: &mut Logger) {
         let mut tasks_finished = 0;
         while let Ok((path_buf, folder)) = self.receiver.try_recv() {
             tasks_finished += 1;
-            self.process_entry(store, &path_buf, folder);
+            self.process_entry(store, &path_buf, folder, logger);
         }
 
-        self.maybe_stop_timer();
+        self.maybe_stop_timer(logger);
 
         let mut running_tasks = self.running_tasks.lock().unwrap();
         *running_tasks -= tasks_finished;
     }
 
-    pub fn process_entry(&mut self, store: &mut S, path_buf: &PathBuf, mut folder: Folder) {
+    pub fn process_entry(
+        &mut self,
+        store: &mut S,
+        path_buf: &PathBuf,
+        mut folder: Folder,
+        logger: &mut Logger,
+    ) {
         for child_entry in folder.entries.iter_mut() {
             if child_entry.kind == FolderEntryType::Folder {
                 let mut subfolder_path = path_buf.clone();
@@ -125,7 +132,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                 child_entry.size = store.get_entry_size(&subfolder_path);
                 folder.sorted_by = None;
 
-                let task_added = self.maybe_add_task(store, &subfolder_path);
+                let task_added = self.maybe_add_task(store, &subfolder_path, logger);
                 if task_added {
                     child_entry.is_loaded = false;
                 }
@@ -160,7 +167,8 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
             }
         }
     }
-    fn maybe_start_timer(&mut self) {
+    fn maybe_start_timer(&mut self, logger: &mut Logger) {
+        logger.start_timer("TM-proc");
         if let Ok(duration) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
             if self.task_timer.start.is_none() {
                 // Start is None - record start
@@ -176,7 +184,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         };
     }
 
-    fn maybe_stop_timer(&mut self) {
+    fn maybe_stop_timer(&mut self, logger: &mut Logger) {
         if let Ok(duration) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
             if self.path_buf_stack.lock().unwrap().is_empty()
                 && *self.running_tasks.lock().unwrap() == 0
@@ -186,6 +194,12 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                 self.task_timer.finish = Some(duration.as_millis());
             }
         };
+
+        if self.path_buf_stack.lock().unwrap().is_empty()
+            && *self.running_tasks.lock().unwrap() == 0
+        {
+            logger.stop_timer("TM-proc");
+        }
     }
 
     pub fn time_taken(&self) -> Option<u128> {

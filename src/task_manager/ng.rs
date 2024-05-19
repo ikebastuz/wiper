@@ -40,7 +40,7 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
     }
 
     pub fn start(&mut self, input: Vec<DataStoreKey>, logger: &mut Logger) {
-        logger.start_timer("NG-start");
+        logger.start_timer("TM-NG-proc");
         self.temp_has_work = true;
         let entry_tx = self.event_tx.clone();
         let _ = std::thread::Builder::new()
@@ -65,19 +65,24 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
             match event {
                 TraversalEvent::Entry(entry) => match entry {
                     Ok(e) => {
-                        let parent_path = e.parent_path;
-                        let title = e.file_name;
+                        let parent_path = e.parent_path.to_path_buf();
+                        let title = e.file_name.to_string_lossy().to_string();
+                        let kind: FolderEntryType = match e.file_type().is_dir() {
+                            true => FolderEntryType::Folder,
+                            false => FolderEntryType::File,
+                        };
                         let size = match e.client_state.as_ref() {
                             Some(Ok(my_entry)) => my_entry.size,
                             _ => 0,
                         };
 
                         let folder_entry = FolderEntry {
-                            title: title.to_string_lossy().to_string(),
+                            title: title.clone(),
                             size: Some(size),
                             is_loaded: true,
-                            kind: FolderEntryType::File,
+                            kind,
                         };
+
                         let parent_folder = store.get_folder_mut(&parent_path.to_path_buf());
 
                         match parent_folder {
@@ -85,7 +90,7 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                                 folder.entries.push(folder_entry);
                             }
                             None => {
-                                let mut folder = Folder::new(title.to_string_lossy().to_string());
+                                let mut folder = Folder::new(title);
                                 folder.entries.push(folder_entry);
                                 store.set_folder(&PathBuf::from(parent_path.to_path_buf()), folder);
                             }
@@ -123,7 +128,7 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                 },
                 TraversalEvent::Finished(_) => {
                     self.temp_has_work = false;
-                    logger.stop_timer("NG-start");
+                    logger.stop_timer("TM-NG-proc");
                 }
             }
         }

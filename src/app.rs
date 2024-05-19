@@ -87,7 +87,8 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         let path_buf = self.store.get_current_path().clone();
         self.logger
             .log(path_buf.to_string_lossy().to_string(), None);
-        self.task_manager.maybe_add_task(&self.store, &path_buf);
+        self.task_manager
+            .maybe_add_task(&self.store, &path_buf, &mut self.logger);
 
         self.task_manager_ng.start(vec![path_buf], &mut self.logger);
     }
@@ -96,7 +97,8 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     pub fn tick(&mut self) {
         self.task_manager_ng
             .process_results(&mut self.store_ng, &mut self.logger);
-        self.task_manager.handle_results(&mut self.store);
+        self.task_manager
+            .handle_results(&mut self.store, &mut self.logger);
     }
 
     /// Set running to false to quit the application.
@@ -163,7 +165,8 @@ impl<S: DataStore<DataStoreKey>> App<S> {
             None,
         );
         for subfolder in to_process_subfolders {
-            self.task_manager.maybe_add_task(&self.store, &subfolder);
+            self.task_manager
+                .maybe_add_task(&self.store, &subfolder, &mut self.logger);
         }
     }
 
@@ -171,7 +174,8 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         let child_path = self.store.move_to_child(title);
         self.logger
             .log(child_path.to_string_lossy().to_string(), None);
-        self.task_manager.maybe_add_task(&self.store, &child_path);
+        self.task_manager
+            .maybe_add_task(&self.store, &child_path, &mut self.logger);
     }
 
     pub fn on_backspace(&mut self) {
