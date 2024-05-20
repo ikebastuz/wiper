@@ -40,7 +40,7 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
     }
 
     pub fn is_done(&self) -> bool {
-        self.is_working
+        !self.is_working
     }
 
     pub fn start(&mut self, input: Vec<DataStoreKey>, logger: &mut Logger) {
