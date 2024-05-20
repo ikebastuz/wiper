@@ -1,7 +1,6 @@
-use crate::fs::{DataStore, DataStoreKey, Folder, FolderEntry, FolderEntryType};
+use crate::fs::{path_to_folder, DataStore, DataStoreKey, Folder, FolderEntry, FolderEntryType};
 use crate::logger::Logger;
 use crossbeam::channel::{Receiver, Sender};
-use std::ffi::OsStr;
 use std::marker::PhantomData;
 use std::path::PathBuf;
 
@@ -68,7 +67,6 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                     Ok(e) => {
                         let belongs_to = e.parent_path.to_path_buf();
                         let title = e.file_name.to_string_lossy().to_string();
-                        // logger.log(format!("[Received] {} <- {:#?}", title, belongs_to), None);
                         let kind: FolderEntryType = match e.file_type().is_dir() {
                             true => FolderEntryType::Folder,
                             false => FolderEntryType::File,
@@ -92,9 +90,9 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                                 folder.entries.push(folder_entry);
                             }
                             None => {
-                                if let Some(parent_folder_name) = belongs_to.file_name() {
+                                if let Some(belongs_to_name) = belongs_to.file_name() {
                                     let mut folder = Folder::new(String::from(
-                                        parent_folder_name.to_string_lossy().to_string(),
+                                        belongs_to_name.to_string_lossy().to_string(),
                                     ));
                                     folder.entries.push(folder_entry);
                                     store.set_folder(
@@ -106,70 +104,32 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                         };
                         // --------------
                         // Update parent's sizes
-                        let mut title_traverse = belongs_to.file_name().unwrap().to_string_lossy();
-                        let mut path_traverse = belongs_to.to_path_buf();
-                        // logger.log(
-                        //     format!("[Pre-bubble] T:{}, P:{:#?}", title_traverse, path_traverse),
-                        //     None,
-                        // );
+                        if let Some(title_traverse_os) = belongs_to.file_name() {
+                            let mut title_traverse =
+                                title_traverse_os.to_string_lossy().to_string();
+                            let mut path_traverse = belongs_to.to_path_buf();
 
-                        while let Some(parent_buf) = path_traverse.parent() {
-                            // logger.log(
-                            //     format!(
-                            //         "[Bubble] Updating {:#?} -> {}",
-                            //         parent_buf.file_name().unwrap(),
-                            //         title_traverse
-                            //     ),
-                            //     None,
-                            // );
-                            if parent_buf == path_traverse {
-                                // logger.log(
-                                //     format!(
-                                //         "No parent for {:#?}",
-                                //         path_traverse.file_name().unwrap(),
-                                //     ),
-                                //     None,
-                                // );
-                                break;
-                            }
-                            // logger.log(
-                            //     format!("Getting folder for {:#?}", PathBuf::from(parent_buf)),
-                            //     None,
-                            // );
-                            if let Some(parent_folder) =
-                                store.get_folder_mut(&PathBuf::from(parent_buf))
-                            {
-                                // logger
-                                //     .log(format!("[Parent folder] {}", parent_folder.title), None);
-                                for child in parent_folder.entries.iter_mut() {
-                                    if child.title == title_traverse
-                                        && child.kind == FolderEntryType::Folder
-                                    {
-                                        let size_before = child.size.unwrap_or(0);
-                                        child.increment_size(size);
-                                        parent_folder.sorted_by = None;
-                                        // logger.log(
-                                        //     format!(
-                                        //         "{} <- {} : {}+{}={}",
-                                        //         title_traverse,
-                                        //         title,
-                                        //         size_before,
-                                        //         size,
-                                        //         child.size.unwrap_or(0)
-                                        //     ),
-                                        //     None,
-                                        // );
-                                        break;
-                                    }
+                            while let Some(parent_buf) = path_traverse.parent() {
+                                if parent_buf == path_traverse {
+                                    break;
                                 }
-                                title_traverse = parent_folder.title.clone().into();
-                                path_traverse = parent_buf.to_path_buf();
-                            } else {
-                                // logger.log(
-                                //     format!("No parent for {:#?}", parent_buf.file_name().unwrap()),
-                                //     None,
-                                // );
-                                break;
+                                if let Some(parent_folder) =
+                                    store.get_folder_mut(&PathBuf::from(parent_buf))
+                                {
+                                    for child in parent_folder.entries.iter_mut() {
+                                        if child.title == title_traverse
+                                            && child.kind == FolderEntryType::Folder
+                                        {
+                                            child.increment_size(size);
+                                            parent_folder.sorted_by = None;
+                                            break;
+                                        }
+                                    }
+                                    title_traverse = parent_folder.title.clone().into();
+                                    path_traverse = parent_buf.to_path_buf();
+                                } else {
+                                    break;
+                                }
                             }
                         }
                     }
@@ -185,10 +145,38 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
         }
     }
 
+    pub fn process_path_sync(&self, store: &mut S, path: &DataStoreKey) -> Vec<DataStoreKey> {
+        let mut folder_new = path_to_folder(path.clone());
+        let mut paths_to_process: Vec<DataStoreKey> = vec![];
+        let mut entries_to_keep: Vec<FolderEntry> = vec![];
+
+        for child in folder_new.entries.iter_mut() {
+            if child.kind == FolderEntryType::Folder {
+                let mut child_path = path.clone();
+                child_path.push(child.title.clone());
+                match store.get_folder_mut(&child_path) {
+                    Some(f) => {
+                        child.size = Some(f.get_size());
+                        entries_to_keep.push(child.clone());
+                    }
+                    None => {
+                        paths_to_process.push(child_path);
+                    }
+                }
+            } else {
+                entries_to_keep.push(child.clone());
+            }
+        }
+
+        folder_new.entries = entries_to_keep;
+        store.set_folder(path, folder_new.clone());
+
+        paths_to_process
+    }
+
     pub fn iter_from_path(root_path: &PathBuf) -> WalkDir {
         let threads = num_cpus::get();
 
-        // let ignore_dirs = [PathBuf::from("/Users/alexk/work/personal/rust/temp/src/a2")];
         let ignore_dirs = [];
 
         WalkDir::new(root_path)

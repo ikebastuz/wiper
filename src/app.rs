@@ -142,30 +142,19 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     }
 
     fn navigate_to_parent(&mut self) {
-        let to_process_subfolders_ng = self.store_ng.move_to_parent();
+        self.store_ng.move_to_parent();
 
-        // MIGRATe
-        self.task_manager_ng
-            .start(to_process_subfolders_ng, &mut self.logger);
+        let updated_path = self.store_ng.get_current_path().to_path_buf();
 
-        self.logger.log(
-            self.store_ng
-                .get_current_path()
-                .to_string_lossy()
-                .to_string(),
-            None,
-        );
-        // for subfolder in to_process_subfolders {
-        //     self.task_manager
-        //         .maybe_add_task(&self.store, &subfolder, &mut self.logger);
-        // }
+        let to_process = self
+            .task_manager_ng
+            .process_path_sync(&mut self.store_ng, &updated_path);
+
+        self.task_manager_ng.start(to_process, &mut self.logger);
     }
 
     fn navigate_to_child(&mut self, title: &str) {
-        let child_path = self.store_ng.move_to_child(title);
-        // MIGRATE
-        self.logger
-            .log(child_path.to_string_lossy().to_string(), None);
+        self.store_ng.move_to_child(title);
     }
 
     pub fn on_backspace(&mut self) {
@@ -242,6 +231,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         }
     }
 
+    /// Currently updates size after deletion
     fn propagate_size_update_upwards(
         &mut self,
         to_delete_path: &Path,
