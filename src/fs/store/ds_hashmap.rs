@@ -1,4 +1,4 @@
-use crate::fs::{path_to_folder, DataStore, Folder, FolderEntryType, SortBy};
+use crate::fs::{DataStore, Folder, SortBy};
 use std::collections::HashMap;
 use std::path::PathBuf;
 

@@ -160,6 +160,7 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                 child_path.push(child.title.clone());
                 match store.get_folder_mut(&child_path) {
                     Some(f) => {
+                        folder_new.cursor_index = f.cursor_index;
                         child.size = Some(f.get_size());
                         entries_to_keep.push(child.clone());
                     }

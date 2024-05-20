@@ -150,6 +150,8 @@ impl<S: DataStore<DataStoreKey>> App<S> {
             .task_manager
             .process_path_sync(&mut self.store, &updated_path);
 
+        self.sort_current_folder();
+
         self.task_manager.start(to_process, &mut self.logger);
     }
 
@@ -246,7 +248,9 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                 {
                     if let Some(size) = parent_folder_entry.size.as_mut() {
                         match diff_kind {
-                            DiffKind::Subtract => *size -= entry_diff,
+                            DiffKind::Subtract => {
+                                *size = size.saturating_sub(entry_diff);
+                            }
                         }
                     }
                 }

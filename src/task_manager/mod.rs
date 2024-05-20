@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::SystemTime;
 
-use crate::logger::{Logger, MessageLevel};
+use crate::logger::Logger;
 mod ng;
 
 pub use ng::TaskManagerNg;
