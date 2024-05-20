@@ -18,13 +18,13 @@ use self::constants::{TEXT_COLOR, TEXT_PRE_DELETED_BG};
 impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         self.pre_render();
-        let maybe_folder = self.store_ng.get_current_folder();
+        let maybe_folder = self.store.get_current_folder();
 
         // Helper data
         let fps = self.fps_counter.update();
         let (spin_left, spin_right) = self.spinner.get_icons(true);
         let debug = DebugData {
-            folders: self.store_ng.get_nodes_len(),
+            folders: self.store.get_nodes_len(),
             fps: format!("{:.1}", fps),
             skipped_frames: format!("{:.1}", self.fps_counter.skipped_frames),
             spin_symbol: (spin_left, spin_right),

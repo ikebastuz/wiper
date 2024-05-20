@@ -24,7 +24,7 @@ pub enum TraversalEvent {
 pub struct TaskManagerNg<S: DataStore<DataStoreKey>> {
     pub event_tx: Sender<TraversalEvent>,
     pub event_rx: Receiver<TraversalEvent>,
-    pub temp_has_work: bool,
+    pub is_working: bool,
     _store: PhantomData<S>,
 }
 
@@ -34,14 +34,18 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
         Self {
             event_rx: entry_rx,
             event_tx: entry_tx,
-            temp_has_work: false,
+            is_working: false,
             _store: PhantomData,
         }
     }
 
+    pub fn is_done(&self) -> bool {
+        self.is_working
+    }
+
     pub fn start(&mut self, input: Vec<DataStoreKey>, logger: &mut Logger) {
         logger.start_timer("TM-NG-proc");
-        self.temp_has_work = true;
+        self.is_working = true;
         let entry_tx = self.event_tx.clone();
         let _ = std::thread::Builder::new()
             .name("wiper-walk-dispatcher".to_string())
@@ -138,7 +142,7 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                     }
                 },
                 TraversalEvent::Finished(_) => {
-                    self.temp_has_work = false;
+                    self.is_working = false;
                     logger.stop_timer("TM-NG-proc");
                 }
             }

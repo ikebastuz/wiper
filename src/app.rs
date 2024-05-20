@@ -27,9 +27,9 @@ pub struct App<S: DataStore<DataStoreKey>> {
     /// Is the application running?
     pub running: bool,
     /// Task manager for async jobs
-    pub task_manager_ng: TaskManagerNg<S>,
+    pub task_manager: TaskManagerNg<S>,
     /// Store for filesystem data
-    pub store_ng: S,
+    pub store: S,
     /// Debug logger
     pub logger: Logger,
     /// FPS Counter
@@ -64,30 +64,30 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                 open_file: true,
                 debug_enabled: false,
             },
-            task_manager_ng: TaskManagerNg::<S>::new(),
-            store_ng: S::new(),
+            task_manager: TaskManagerNg::<S>::new(),
+            store: S::new(),
             logger: Logger::default(),
             fps_counter: FPSCounter::default(),
             spinner: Spinner::default(),
         };
 
-        app.store_ng.set_current_path(&current_path);
+        app.store.set_current_path(&current_path);
 
         app
     }
 
     pub fn init(&mut self) {
-        let path_buf = self.store_ng.get_current_path().clone();
+        let path_buf = self.store.get_current_path().clone();
         self.logger
             .log(path_buf.to_string_lossy().to_string(), None);
 
-        self.task_manager_ng.start(vec![path_buf], &mut self.logger);
+        self.task_manager.start(vec![path_buf], &mut self.logger);
     }
 
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
-        self.task_manager_ng
-            .process_results(&mut self.store_ng, &mut self.logger);
+        self.task_manager
+            .process_results(&mut self.store, &mut self.logger);
     }
 
     /// Set running to false to quit the application.
@@ -115,7 +115,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     }
 
     fn sort_current_folder(&mut self) {
-        self.store_ng
+        self.store
             .sort_current_folder(self.ui_config.sort_by.clone());
     }
 
@@ -124,7 +124,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     }
 
     pub fn on_cursor_up(&mut self) {
-        if let Some(folder) = self.store_ng.get_current_folder_mut() {
+        if let Some(folder) = self.store.get_current_folder_mut() {
             if folder.cursor_index > 0 {
                 folder.cursor_index -= 1;
             }
@@ -133,7 +133,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     }
 
     pub fn on_cursor_down(&mut self) {
-        if let Some(folder) = self.store_ng.get_current_folder_mut() {
+        if let Some(folder) = self.store.get_current_folder_mut() {
             if folder.cursor_index < folder.entries.len() - 1 {
                 folder.cursor_index += 1;
             }
@@ -142,19 +142,19 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     }
 
     fn navigate_to_parent(&mut self) {
-        self.store_ng.move_to_parent();
+        self.store.move_to_parent();
 
-        let updated_path = self.store_ng.get_current_path().to_path_buf();
+        let updated_path = self.store.get_current_path().to_path_buf();
 
         let to_process = self
-            .task_manager_ng
-            .process_path_sync(&mut self.store_ng, &updated_path);
+            .task_manager
+            .process_path_sync(&mut self.store, &updated_path);
 
-        self.task_manager_ng.start(to_process, &mut self.logger);
+        self.task_manager.start(to_process, &mut self.logger);
     }
 
     fn navigate_to_child(&mut self, title: &str) {
-        self.store_ng.move_to_child(title);
+        self.store.move_to_child(title);
     }
 
     pub fn on_backspace(&mut self) {
@@ -162,7 +162,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     }
 
     pub fn on_enter(&mut self) {
-        if let Some(folder) = self.store_ng.get_current_folder().cloned() {
+        if let Some(folder) = self.store.get_current_folder().cloned() {
             let entry = folder.get_selected_entry();
 
             match entry.kind {
@@ -174,7 +174,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                 }
                 FolderEntryType::File => {
                     if self.ui_config.open_file {
-                        let mut file_name = self.store_ng.get_current_path().clone();
+                        let mut file_name = self.store.get_current_path().clone();
                         file_name.push(entry.title.clone());
                         let _ = opener::open(file_name);
                     }
@@ -185,10 +185,10 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     }
 
     pub fn on_delete(&mut self) {
-        if let Some(mut folder) = self.store_ng.get_current_folder().cloned() {
+        if let Some(mut folder) = self.store.get_current_folder().cloned() {
             let entry = folder.get_selected_entry();
 
-            let mut to_delete_path = PathBuf::from(&self.store_ng.get_current_path());
+            let mut to_delete_path = PathBuf::from(&self.store.get_current_path());
             to_delete_path.push(&entry.title);
 
             match entry.kind {
@@ -205,8 +205,8 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                             );
                         }
                         folder.remove_selected();
-                        self.store_ng.remove_path(&to_delete_path);
-                        self.store_ng.set_current_folder(folder.clone());
+                        self.store.remove_path(&to_delete_path);
+                        self.store.set_current_folder(folder.clone());
                         self.ui_config.confirming_deletion = false;
                     }
                 }
@@ -223,7 +223,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                             );
                         }
                         folder.remove_selected();
-                        self.store_ng.set_current_folder(folder.clone());
+                        self.store.set_current_folder(folder.clone());
                         self.ui_config.confirming_deletion = false;
                     }
                 }
@@ -240,7 +240,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     ) {
         let mut parent_path = to_delete_path.to_path_buf();
         while let Some(parent) = parent_path.parent() {
-            if let Some(parent_folder) = self.store_ng.get_folder_mut(&parent_path) {
+            if let Some(parent_folder) = self.store.get_folder_mut(&parent_path) {
                 if let Some(parent_folder_entry) =
                     parent_folder.entries.get_mut(parent_folder.cursor_index)
                 {
