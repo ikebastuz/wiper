@@ -100,10 +100,9 @@ pub fn render_table(area: Rect, buf: &mut Buffer, folder: &Folder, config: &UICo
 pub fn render_debug_panel(area: Rect, buf: &mut Buffer, logger: &Logger, debug_data: &DebugData) {
     let [top, bottom] = Layout::vertical([Constraint::Max(5), Constraint::Fill(1)]).areas(area);
 
-    let version = env!("CARGO_PKG_VERSION");
     let stats_text = Text::from(format!(
-        "Version: {}\nFolders: {}\nFPS: {} | Skipped: {}",
-        version, debug_data.folders, debug_data.fps, debug_data.skipped_frames
+        "Folders: {}\nFPS: {} | Skipped: {}",
+        debug_data.folders, debug_data.fps, debug_data.skipped_frames
     ));
 
     let stats_block = Block::default()

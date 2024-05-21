@@ -11,11 +11,14 @@ pub fn render_footer(area: Rect, buf: &mut Buffer) {
     let layout = Layout::horizontal([
         Constraint::Fill(1),
         Constraint::Max(13),
+        Constraint::Max(13),
         Constraint::Max(6),
         Constraint::Max(4),
     ]);
-    let [col_navigate, col_delete, col_sort, col_quit] = layout.areas(inner_area);
+    let [col_navigate, col_version, col_delete, col_sort, col_quit] = layout.areas(inner_area);
 
+    let version = env!("CARGO_PKG_VERSION");
+    let text_version = format!("v:{}", version);
     let text_delete = color_capital_letter("Delete - 2x,".into(), None, None);
     let text_sort = color_capital_letter("Sort,".into(), None, None);
     let text_quit = color_capital_letter("Quit".into(), None, None);
@@ -23,6 +26,9 @@ pub fn render_footer(area: Rect, buf: &mut Buffer) {
     Paragraph::new(TEXT_HINT_NAVIGATE)
         .left_aligned()
         .render(col_navigate, buf);
+    Paragraph::new(text_version)
+        .left_aligned()
+        .render(col_version, buf);
     Paragraph::new(text_delete)
         .left_aligned()
         .render(col_delete, buf);
