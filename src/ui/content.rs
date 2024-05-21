@@ -83,7 +83,7 @@ pub fn render_table(
     let table = Table::new(
         rows,
         [
-            Constraint::Length(1),
+            Constraint::Length(3),
             Constraint::Length(40),
             Constraint::Length(20),
             Constraint::Length(TABLE_SPACE_WIDTH as u16),
