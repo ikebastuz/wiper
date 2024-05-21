@@ -141,6 +141,13 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         self.ui_config.confirming_deletion = false;
     }
 
+    pub fn on_open_file_explorer(&mut self) {
+        match open::that(self.store.get_current_path().to_string_lossy().to_string()) {
+            Ok(_) => {}
+            Err(_) => self.logger.log("Failed to open path".into(), None),
+        }
+    }
+
     fn navigate_to_parent(&mut self) {
         self.store.move_to_parent();
 
