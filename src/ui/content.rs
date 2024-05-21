@@ -37,7 +37,7 @@ pub fn render_content(
     let [content_col, debug_col] = horizontal_layout.areas(area);
 
     if let Some(folder) = maybe_folder {
-        render_table(content_col, buf, folder, config, debug_data.spin_symbol.0);
+        render_table(content_col, buf, folder, config);
     }
 
     if config.debug_enabled {
@@ -45,13 +45,7 @@ pub fn render_content(
     }
 }
 
-pub fn render_table(
-    area: Rect,
-    buf: &mut Buffer,
-    folder: &Folder,
-    config: &UIConfig,
-    loading_indicator: char,
-) {
+pub fn render_table(area: Rect, buf: &mut Buffer, folder: &Folder, config: &UIConfig) {
     let block = Block::default()
         .borders(Borders::ALL)
         .padding(Padding::horizontal(1))
@@ -78,12 +72,12 @@ pub fn render_table(
         .style(header_style)
         .height(1);
 
-    let rows = folder_to_rows(folder, config, loading_indicator);
+    let rows = folder_to_rows(folder, config);
 
     let table = Table::new(
         rows,
         [
-            Constraint::Length(3),
+            Constraint::Length(2),
             Constraint::Length(40),
             Constraint::Length(20),
             Constraint::Length(TABLE_SPACE_WIDTH as u16),

@@ -69,14 +69,16 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
             match event {
                 TraversalEvent::Entry(entry) => match entry {
                     Ok(e) => {
+                        // Construct entry
                         let belongs_to = e.parent_path.to_path_buf();
                         let title = e.file_name.to_string_lossy().to_string();
-                        let kind: FolderEntryType = match e.file_type().is_dir() {
+                        let kind = match e.file_type().is_dir() {
                             true => {
-                                /////////////////////// Create folder (cover empty folder case)
+                                // Create store record for folder (edge-case for last-leaf-empty
+                                // folders)
                                 let temp_folder = Folder::new(title.clone());
                                 store.set_folder(&e.path().clone(), temp_folder);
-                                ////////////////////////
+
                                 FolderEntryType::Folder
                             }
                             false => FolderEntryType::File,
@@ -85,7 +87,6 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                             Some(Ok(my_entry)) => my_entry.size,
                             _ => 0,
                         };
-
                         let folder_entry = FolderEntry {
                             title: title.clone(),
                             size: Some(size),
@@ -93,8 +94,8 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                             kind,
                         };
 
+                        // Add entry to parent folder
                         let parent_folder = store.get_folder_mut(&belongs_to.to_path_buf());
-
                         match parent_folder {
                             Some(folder) => {
                                 folder.entries.push(folder_entry);
@@ -112,8 +113,8 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                                 }
                             }
                         };
-                        // --------------
-                        // Update parent's sizes
+
+                        // Traverse tree up - update parent folder sizes
                         if let Some(title_traverse_os) = belongs_to.file_name() {
                             let mut title_traverse =
                                 title_traverse_os.to_string_lossy().to_string();
@@ -168,6 +169,7 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                 match store.get_folder_mut(&child_path) {
                     Some(f) => {
                         child.size = Some(f.get_size());
+                        child.is_loaded = f.entries.iter().all(|e| e.is_loaded);
                         entries_to_keep.push(child.clone());
                     }
                     None => {

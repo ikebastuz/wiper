@@ -22,7 +22,7 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
 
         // Helper data
         let fps = self.fps_counter.update();
-        let (spin_left, spin_right) = self.spinner.get_icons(true);
+        let (spin_left, spin_right) = self.spinner.get_icons(!self.task_manager.is_working);
         let debug = DebugData {
             folders: self.store.get_nodes_len(),
             fps: format!("{:.1}", fps),

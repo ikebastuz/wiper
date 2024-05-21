@@ -15,4 +15,4 @@ pub const TEXT_PARENT_DIR: &str = "..";
 pub const TEXT_TITLE: &str = "Wiper";
 pub const TEXT_HINT_NAVIGATE: &str = "←↓↑→/Enter/Backspace - navigate";
 pub const TEXT_ICON_FOLDER: &str = "";
-pub const TEXT_ICON_FOLDER_ASCII: &str = "[ ]";
+pub const TEXT_ICON_FOLDER_ASCII: &str = "[]";
