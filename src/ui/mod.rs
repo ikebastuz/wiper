@@ -34,15 +34,13 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
         let mut title = TEXT_TITLE;
         let mut border_color = TEXT_COLOR;
 
-        match maybe_folder {
-            Some(folder) => {
-                if folder.has_error {
-                    title = "Error";
-                    border_color = TEXT_PRE_DELETED_BG;
-                }
+        if let Some(folder) = maybe_folder {
+            if folder.has_error {
+                title = "Error";
+                border_color = TEXT_PRE_DELETED_BG;
             }
-            None => {}
         }
+
         let block = Block::default()
             .title(format!(" {} {} {} ", spin_left, title, spin_right))
             .title_alignment(Alignment::Center)

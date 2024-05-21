@@ -102,14 +102,10 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                             }
                             None => {
                                 if let Some(belongs_to_name) = belongs_to.file_name() {
-                                    let mut folder = Folder::new(String::from(
-                                        belongs_to_name.to_string_lossy().to_string(),
-                                    ));
+                                    let mut folder =
+                                        Folder::new(belongs_to_name.to_string_lossy().to_string());
                                     folder.entries.push(folder_entry);
-                                    store.set_folder(
-                                        &PathBuf::from(belongs_to.to_path_buf()),
-                                        folder,
-                                    );
+                                    store.set_folder(&belongs_to.to_path_buf(), folder);
                                 }
                             }
                         };
@@ -136,7 +132,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                                             break;
                                         }
                                     }
-                                    title_traverse = parent_folder.title.clone().into();
+                                    title_traverse = parent_folder.title.clone();
                                     path_traverse = parent_buf.to_path_buf();
                                 } else {
                                     break;
@@ -145,7 +141,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                         }
                     }
                     Err(_) => {
-                        logger.log(format!("Done?"), None);
+                        logger.log("Done".into(), None);
                     }
                 },
                 TraversalEvent::Finished(_) => {
@@ -182,11 +178,8 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         }
 
         // Persist cursor
-        match store.get_folder_mut(path) {
-            Some(f) => {
-                folder_new.cursor_index = f.cursor_index;
-            }
-            None => {}
+        if let Some(f) = store.get_folder_mut(path) {
+            folder_new.cursor_index = f.cursor_index;
         }
 
         folder_new.entries = entries_to_keep;
@@ -240,5 +233,11 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                     busy_timeout: None,
                 },
             })
+    }
+}
+
+impl<S: DataStore<DataStoreKey>> Default for TaskManager<S> {
+    fn default() -> Self {
+        Self::new()
     }
 }

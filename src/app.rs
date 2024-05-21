@@ -64,7 +64,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                 open_file: true,
                 debug_enabled: false,
             },
-            task_manager: TaskManager::<S>::new(),
+            task_manager: TaskManager::<S>::default(),
             store: S::new(),
             logger: Logger::default(),
             fps_counter: FPSCounter::default(),
