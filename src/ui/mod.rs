@@ -22,30 +22,25 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
 
         // Helper data
         let fps = self.fps_counter.update();
-        let time_taken = self.task_manager.time_taken();
-        let (spin_left, spin_right) = self.spinner.get_icons(time_taken.is_some());
+        let (spin_left, spin_right) = self.spinner.get_icons(!self.task_manager.is_working);
         let debug = DebugData {
             folders: self.store.get_nodes_len(),
-            time_taken,
             fps: format!("{:.1}", fps),
             skipped_frames: format!("{:.1}", self.fps_counter.skipped_frames),
             spin_symbol: (spin_left, spin_right),
         };
 
         // Main wrapper
-
         let mut title = TEXT_TITLE;
         let mut border_color = TEXT_COLOR;
 
-        match maybe_folder {
-            Some(folder) => {
-                if folder.has_error {
-                    title = "Error";
-                    border_color = TEXT_PRE_DELETED_BG;
-                }
+        if let Some(folder) = maybe_folder {
+            if folder.has_error {
+                title = "Error";
+                border_color = TEXT_PRE_DELETED_BG;
             }
-            None => {}
         }
+
         let block = Block::default()
             .title(format!(" {} {} {} ", spin_left, title, spin_right))
             .title_alignment(Alignment::Center)

@@ -61,7 +61,7 @@ I started this project as part of my journey to learn Rust. I always missed havi
 - Simpler deletion flow
 
 #### Cons:
-- It is 10-15 times slower because of manually implemented file traversal. I plan to rewrite it in the same way as dua-cli (with `jwalk`)
+- ~~It is 10-15 times slower because of manually implemented file traversal~~. Not anymore, rewritten with `jwalk`.
 - Does not have filtering functionality
 - Not capable of marking multiple entries for deletion
 

@@ -54,6 +54,15 @@ impl PartialOrd for FolderEntry {
 }
 
 impl FolderEntry {
+    pub fn increment_size(&mut self, addition: u64) {
+        match self.size {
+            Some(ref mut s) => {
+                *s += addition;
+            }
+            None => self.size = Some(addition),
+        }
+    }
+
     pub fn sort_by_size(entries: &mut [FolderEntry]) {
         entries.sort_by(|a, b| {
             if let (Some(size_a), Some(size_b)) = (a.size, b.size) {

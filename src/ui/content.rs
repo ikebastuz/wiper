@@ -12,10 +12,9 @@ use crate::ui::constants::{
 };
 use crate::ui::utils::folder_to_rows;
 
-const MAX_LOG_LEN: usize = 40;
+const MAX_LOG_LEN: usize = 180;
 #[derive(Debug)]
 pub struct DebugData {
-    pub time_taken: Option<u128>,
     pub fps: String,
     pub skipped_frames: String,
     pub folders: usize,
@@ -38,7 +37,7 @@ pub fn render_content(
     let [content_col, debug_col] = horizontal_layout.areas(area);
 
     if let Some(folder) = maybe_folder {
-        render_table(content_col, buf, folder, config, debug_data.spin_symbol.0);
+        render_table(content_col, buf, folder, config);
     }
 
     if config.debug_enabled {
@@ -46,13 +45,7 @@ pub fn render_content(
     }
 }
 
-pub fn render_table(
-    area: Rect,
-    buf: &mut Buffer,
-    folder: &Folder,
-    config: &UIConfig,
-    loading_indicator: char,
-) {
+pub fn render_table(area: Rect, buf: &mut Buffer, folder: &Folder, config: &UIConfig) {
     let block = Block::default()
         .borders(Borders::ALL)
         .padding(Padding::horizontal(1))
@@ -79,12 +72,12 @@ pub fn render_table(
         .style(header_style)
         .height(1);
 
-    let rows = folder_to_rows(folder, config, loading_indicator);
+    let rows = folder_to_rows(folder, config);
 
     let table = Table::new(
         rows,
         [
-            Constraint::Length(3),
+            Constraint::Length(2),
             Constraint::Length(40),
             Constraint::Length(20),
             Constraint::Length(TABLE_SPACE_WIDTH as u16),
@@ -107,15 +100,9 @@ pub fn render_table(
 pub fn render_debug_panel(area: Rect, buf: &mut Buffer, logger: &Logger, debug_data: &DebugData) {
     let [top, bottom] = Layout::vertical([Constraint::Max(5), Constraint::Fill(1)]).areas(area);
 
-    // Stats
-    let time_taken = debug_data
-        .time_taken
-        .map(|t| t.to_string())
-        .unwrap_or_else(|| "...".to_string());
-
     let stats_text = Text::from(format!(
-        "Folders: {}\nDone in: {}\nFPS: {} | Skipped: {}",
-        debug_data.folders, time_taken, debug_data.fps, debug_data.skipped_frames
+        "Folders: {}\nFPS: {} | Skipped: {}",
+        debug_data.folders, debug_data.fps, debug_data.skipped_frames
     ));
 
     let stats_block = Block::default()

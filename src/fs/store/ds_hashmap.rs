@@ -1,4 +1,4 @@
-use crate::fs::{path_to_folder, DataStore, Folder, FolderEntryType, SortBy};
+use crate::fs::{DataStore, Folder, SortBy};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -74,24 +74,17 @@ impl DataStore<DataStoreKey> for DSHashmap {
         }
     }
 
-    fn move_to_parent(&mut self) -> Vec<PathBuf> {
+    fn move_to_parent(&mut self) {
         if let Some(parent) = &self.current_path.parent() {
             let parent_buf = parent.to_path_buf();
             self.current_path = parent_buf.clone();
-
-            self.process_path(&self.current_path.clone())
-        } else {
-            vec![]
         }
     }
 
-    // TODO: Returns string that should be processed
-    fn move_to_child(&mut self, title: &str) -> PathBuf {
+    fn move_to_child(&mut self, title: &str) {
         let mut new_path = PathBuf::from(&self.current_path);
         new_path.push(title);
-        self.current_path = new_path.clone();
-
-        new_path
+        self.current_path = new_path;
     }
 
     fn get_entry_size(&mut self, path: &PathBuf) -> Option<u64> {
@@ -106,49 +99,7 @@ impl DataStore<DataStoreKey> for DSHashmap {
         self.store.keys().len()
     }
 
-    fn process_path(&mut self, path_buf: &DataStoreKey) -> Vec<PathBuf> {
-        let mut to_process_subfolders: Vec<PathBuf> = vec![];
-
-        if !self.has_path(path_buf) {
-            let mut folder = path_to_folder(path_buf.clone());
-            for child_entry in folder.entries.iter_mut() {
-                if child_entry.kind == FolderEntryType::Folder {
-                    let mut subfolder_path = path_buf.clone();
-                    subfolder_path.push(&child_entry.title);
-                    child_entry.size = self.get_entry_size(&subfolder_path);
-                    folder.sorted_by = None;
-
-                    to_process_subfolders.push(subfolder_path);
-                }
-            }
-            self.set_folder(path_buf, folder.clone());
-
-            let mut t = folder.clone();
-            let mut p = path_buf.clone();
-
-            while let Some(parent_buf) = p.parent() {
-                if parent_buf == p {
-                    break;
-                }
-                if let Some(parent_folder) = self.get_folder_mut(&PathBuf::from(parent_buf)) {
-                    for entry in parent_folder.entries.iter_mut() {
-                        if entry.title == t.title {
-                            entry.size = Some(t.get_size());
-                            parent_folder.sorted_by = None;
-
-                            break;
-                        }
-                    }
-                    t = parent_folder.clone();
-                    p = parent_buf.to_path_buf();
-                } else {
-                    break;
-                }
-            }
-
-            to_process_subfolders
-        } else {
-            to_process_subfolders
-        }
+    fn get_keys(&mut self) -> Vec<PathBuf> {
+        self.store.keys().cloned().collect()
     }
 }

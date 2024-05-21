@@ -1,193 +1,238 @@
-use crate::fs::{path_to_folder, DataStore, DataStoreKey, Folder, FolderEntryType};
-use std::collections::VecDeque;
+use crate::fs::{path_to_folder, DataStore, DataStoreKey, Folder, FolderEntry, FolderEntryType};
+use crate::logger::Logger;
+use crossbeam::channel::{Receiver, Sender};
 use std::marker::PhantomData;
-use std::path::{Path, PathBuf};
-use std::sync::mpsc::{self, Receiver, Sender};
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::SystemTime;
+use std::path::PathBuf;
 
 #[derive(Debug)]
-pub struct TaskTimer {
-    pub start: Option<u128>,
-    pub finish: Option<u128>,
+pub struct EntryState {
+    size: u64,
+}
+
+type WalkDir = jwalk::WalkDirGeneric<((), Option<Result<EntryState, jwalk::Error>>)>;
+
+pub type TraversalEntry =
+    Result<jwalk::DirEntry<((), Option<Result<EntryState, jwalk::Error>>)>, jwalk::Error>;
+
+#[derive(Debug)]
+pub enum TraversalEvent {
+    Entry(TraversalEntry),
+    Finished(u64),
 }
 
 #[derive(Debug)]
 pub struct TaskManager<S: DataStore<DataStoreKey>> {
-    /// Stack of file paths to process
-    pub path_buf_stack: Arc<Mutex<VecDeque<PathBuf>>>,
-    /// Single receiver to accept processed paths
-    pub receiver: Receiver<(PathBuf, Folder)>,
-    /// Sender associated with the single receiver
-    pub sender: Sender<(PathBuf, Folder)>,
-    /// Job execution timer
-    pub task_timer: TaskTimer,
-    pub running_tasks: Arc<Mutex<usize>>,
+    pub event_tx: Sender<TraversalEvent>,
+    pub event_rx: Receiver<TraversalEvent>,
+    pub is_working: bool,
     _store: PhantomData<S>,
 }
 
-/// For debugging purposes
-fn _heavy_computation() {
-    let mut _sum = 0.0;
-    for i in 0..10_000_000 {
-        _sum += (i as f64).sqrt();
-    }
-}
-
 impl<S: DataStore<DataStoreKey>> TaskManager<S> {
-    fn new() -> Self {
-        let (sender, receiver) = mpsc::channel();
-        let path_buf_stack = Arc::new(Mutex::new(VecDeque::<PathBuf>::new()));
-        let running_tasks = Arc::new(Mutex::new(0));
-
-        let worker_stack = Arc::clone(&path_buf_stack);
-        let worker_sender = sender.clone();
-        let running_tasks_clone = Arc::clone(&running_tasks);
-        thread::spawn(move || loop {
-            let task = {
-                let mut stack = worker_stack.lock().unwrap();
-                stack.pop_front()
-            };
-
-            if let Some(path_buf) = task {
-                let mut tasks = running_tasks_clone.lock().unwrap();
-                *tasks += 1;
-                drop(tasks);
-
-                let folder = path_to_folder(path_buf.clone());
-
-                let _ = worker_sender.send((path_buf, folder));
-            } else {
-                thread::sleep(std::time::Duration::from_millis(100));
-            }
-        });
-
-        TaskManager {
-            path_buf_stack,
-            receiver,
-            sender,
-            task_timer: TaskTimer {
-                start: None,
-                finish: None,
-            },
-            running_tasks,
+    pub fn new() -> Self {
+        let (entry_tx, entry_rx) = crossbeam::channel::bounded(100);
+        Self {
+            event_rx: entry_rx,
+            event_tx: entry_tx,
+            is_working: false,
             _store: PhantomData,
         }
     }
 
-    pub fn add_task(&mut self, path_buf: &Path) {
-        {
-            let mut stack = self.path_buf_stack.lock().unwrap();
-            stack.push_back(path_buf.to_path_buf());
-        } // Lock is released here
-
-        self.maybe_start_timer();
-    }
-
     pub fn is_done(&self) -> bool {
-        let stack = self.path_buf_stack.lock().unwrap();
-        let running_tasks = self.running_tasks.lock().unwrap();
-        stack.is_empty() && *running_tasks == 0
+        !self.is_working
     }
 
-    pub fn maybe_add_task(&mut self, store: &S, path_buf: &PathBuf) -> bool {
-        if !store.has_path(path_buf) {
-            self.add_task(path_buf);
-            true
-        } else {
-            false
-        }
+    pub fn start(&mut self, input: Vec<DataStoreKey>, logger: &mut Logger) {
+        logger.start_timer("Traversal");
+        self.is_working = true;
+        let entry_tx = self.event_tx.clone();
+        let _ = std::thread::Builder::new()
+            .name("wiper-walk-dispatcher".to_string())
+            .spawn({
+                move || {
+                    for root_path in input.into_iter() {
+                        for entry in Self::iter_from_path(&root_path).into_iter() {
+                            if entry_tx.send(TraversalEvent::Entry(entry)).is_err() {
+                                println!("Send err: channel closed");
+                                return;
+                            }
+                        }
+                    }
+                    let _ = entry_tx.send(TraversalEvent::Finished(0));
+                }
+            });
     }
 
-    pub fn handle_results(&mut self, store: &mut S) {
-        let mut tasks_finished = 0;
-        while let Ok((path_buf, folder)) = self.receiver.try_recv() {
-            tasks_finished += 1;
-            self.process_entry(store, &path_buf, folder);
-        }
+    pub fn process_results(&mut self, store: &mut S, logger: &mut Logger) {
+        while let Ok(event) = self.event_rx.try_recv() {
+            match event {
+                TraversalEvent::Entry(entry) => match entry {
+                    Ok(e) => {
+                        // Construct entry
+                        let belongs_to = e.parent_path.to_path_buf();
+                        let title = e.file_name.to_string_lossy().to_string();
+                        let kind = match e.file_type().is_dir() {
+                            true => {
+                                // Create store record for folder (edge-case for last-leaf-empty
+                                // folders)
+                                let temp_folder = Folder::new(title.clone());
+                                store.set_folder(&e.path().clone(), temp_folder);
 
-        self.maybe_stop_timer();
+                                FolderEntryType::Folder
+                            }
+                            false => FolderEntryType::File,
+                        };
+                        let size = match e.client_state.as_ref() {
+                            Some(Ok(my_entry)) => my_entry.size,
+                            _ => 0,
+                        };
+                        let folder_entry = FolderEntry {
+                            title: title.clone(),
+                            size: Some(size),
+                            is_loaded: true,
+                            kind,
+                        };
 
-        let mut running_tasks = self.running_tasks.lock().unwrap();
-        *running_tasks -= tasks_finished;
-    }
+                        // Add entry to parent folder
+                        let parent_folder = store.get_folder_mut(&belongs_to.to_path_buf());
+                        match parent_folder {
+                            Some(folder) => {
+                                folder.entries.push(folder_entry);
+                            }
+                            None => {
+                                if let Some(belongs_to_name) = belongs_to.file_name() {
+                                    let mut folder =
+                                        Folder::new(belongs_to_name.to_string_lossy().to_string());
+                                    folder.entries.push(folder_entry);
+                                    store.set_folder(&belongs_to.to_path_buf(), folder);
+                                }
+                            }
+                        };
 
-    pub fn process_entry(&mut self, store: &mut S, path_buf: &PathBuf, mut folder: Folder) {
-        for child_entry in folder.entries.iter_mut() {
-            if child_entry.kind == FolderEntryType::Folder {
-                let mut subfolder_path = path_buf.clone();
-                subfolder_path.push(&child_entry.title);
-                child_entry.size = store.get_entry_size(&subfolder_path);
-                folder.sorted_by = None;
+                        // Traverse tree up - update parent folder sizes
+                        if let Some(title_traverse_os) = belongs_to.file_name() {
+                            let mut title_traverse =
+                                title_traverse_os.to_string_lossy().to_string();
+                            let mut path_traverse = belongs_to.to_path_buf();
 
-                let task_added = self.maybe_add_task(store, &subfolder_path);
-                if task_added {
-                    child_entry.is_loaded = false;
+                            while let Some(parent_buf) = path_traverse.parent() {
+                                if parent_buf == path_traverse {
+                                    break;
+                                }
+                                if let Some(parent_folder) =
+                                    store.get_folder_mut(&PathBuf::from(parent_buf))
+                                {
+                                    for child in parent_folder.entries.iter_mut() {
+                                        if child.title == title_traverse
+                                            && child.kind == FolderEntryType::Folder
+                                        {
+                                            child.increment_size(size);
+                                            parent_folder.sorted_by = None;
+                                            break;
+                                        }
+                                    }
+                                    title_traverse = parent_folder.title.clone();
+                                    path_traverse = parent_buf.to_path_buf();
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    Err(_) => {
+                        logger.log("Done".into(), None);
+                    }
+                },
+                TraversalEvent::Finished(_) => {
+                    self.is_working = false;
+                    logger.stop_timer("Traversal");
+                    logger.log(format!("Folders: {}", store.get_nodes_len()), None);
                 }
             }
         }
+    }
 
-        store.set_folder(path_buf, folder.clone());
+    pub fn process_path_sync(&self, store: &mut S, path: &DataStoreKey) -> Vec<DataStoreKey> {
+        let mut folder_new = path_to_folder(path.clone());
+        let mut paths_to_process: Vec<DataStoreKey> = vec![];
+        let mut entries_to_keep: Vec<FolderEntry> = vec![];
 
-        let mut folder_traverse = folder.clone();
-        let mut path_traverse = path_buf.clone();
-        let mut is_loaded_traverse = folder.entries.iter().all(|entry| entry.is_loaded);
-
-        while let Some(parent_buf) = path_traverse.parent() {
-            if parent_buf == path_traverse {
-                break;
-            }
-            if let Some(parent_folder) = store.get_folder_mut(&PathBuf::from(parent_buf)) {
-                for entry in parent_folder.entries.iter_mut() {
-                    if entry.title == folder_traverse.title {
-                        entry.size = Some(folder_traverse.get_size());
-                        entry.is_loaded = is_loaded_traverse;
-                        parent_folder.sorted_by = None;
-
-                        break;
+        for child in folder_new.entries.iter_mut() {
+            if child.kind == FolderEntryType::Folder {
+                let mut child_path = path.clone();
+                child_path.push(child.title.clone());
+                match store.get_folder_mut(&child_path) {
+                    Some(f) => {
+                        child.size = Some(f.get_size());
+                        child.is_loaded = f.entries.iter().all(|e| e.is_loaded);
+                        entries_to_keep.push(child.clone());
+                    }
+                    None => {
+                        paths_to_process.push(child_path);
                     }
                 }
-                folder_traverse = parent_folder.clone();
-                path_traverse = parent_buf.to_path_buf();
-                is_loaded_traverse = parent_folder.entries.iter().all(|entry| entry.is_loaded);
             } else {
-                break;
+                entries_to_keep.push(child.clone());
             }
         }
+
+        // Persist cursor
+        if let Some(f) = store.get_folder_mut(path) {
+            folder_new.cursor_index = f.cursor_index;
+        }
+
+        folder_new.entries = entries_to_keep;
+        store.set_folder(path, folder_new.clone());
+
+        paths_to_process
     }
-    fn maybe_start_timer(&mut self) {
-        if let Ok(duration) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-            if self.task_timer.start.is_none() {
-                // Start is None - record start
-                self.task_timer.start = Some(duration.as_millis());
-            } else {
-                // Start is not None
-                if self.task_timer.finish.is_some() {
-                    // Finish is not None - restart
-                    self.task_timer.start = Some(duration.as_millis());
-                    self.task_timer.finish = None;
+
+    pub fn iter_from_path(root_path: &PathBuf) -> WalkDir {
+        let threads = num_cpus::get();
+
+        let ignore_dirs = [];
+
+        WalkDir::new(root_path)
+            .follow_links(false)
+            .skip_hidden(false)
+            .process_read_dir({
+                move |_, _, _, dir_entry_results| {
+                    dir_entry_results.iter_mut().for_each(|dir_entry_result| {
+                        if let Ok(dir_entry) = dir_entry_result {
+                            let metadata = dir_entry.metadata();
+
+                            if let Ok(metadata) = metadata {
+                                dir_entry.client_state = Some(Ok(EntryState {
+                                    size: metadata.len(),
+                                }));
+                            } else {
+                                dir_entry.client_state = Some(Err(metadata.unwrap_err()));
+                            }
+
+                            if ignore_dirs.contains(&dir_entry.path()) {
+                                dir_entry.read_children_path = None;
+                            }
+                        }
+                    })
                 }
-            };
-        };
-    }
-
-    fn maybe_stop_timer(&mut self) {
-        if let Ok(duration) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-            if self.path_buf_stack.lock().unwrap().is_empty()
-                && *self.running_tasks.lock().unwrap() == 0
-                && self.task_timer.start.is_some()
-                && self.task_timer.finish.is_none()
-            {
-                self.task_timer.finish = Some(duration.as_millis());
-            }
-        };
-    }
-
-    pub fn time_taken(&self) -> Option<u128> {
-        self.task_timer
-            .start
-            .and_then(|start| self.task_timer.finish.map(|finish| finish - start))
+            })
+            .parallelism(match threads {
+                0 => jwalk::Parallelism::RayonDefaultPool {
+                    busy_timeout: std::time::Duration::from_secs(1),
+                },
+                1 => jwalk::Parallelism::Serial,
+                _ => jwalk::Parallelism::RayonExistingPool {
+                    pool: jwalk::rayon::ThreadPoolBuilder::new()
+                        .stack_size(128 * 1024)
+                        .num_threads(threads)
+                        .thread_name(|idx| format!("wiper-walk-{idx}"))
+                        .build()
+                        .expect("fields we set cannot fail")
+                        .into(),
+                    busy_timeout: None,
+                },
+            })
     }
 }
 

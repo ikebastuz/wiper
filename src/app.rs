@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use crate::config::{InitConfig, UIConfig};
 use std::env;
 
-use crate::logger::{Logger, MessageLevel};
+use crate::logger::Logger;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -79,13 +79,15 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     pub fn init(&mut self) {
         let path_buf = self.store.get_current_path().clone();
         self.logger
-            .log(path_buf.to_string_lossy().to_string(), MessageLevel::Info);
-        self.task_manager.maybe_add_task(&self.store, &path_buf);
+            .log(path_buf.to_string_lossy().to_string(), None);
+
+        self.task_manager.start(vec![path_buf], &mut self.logger);
     }
 
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
-        self.task_manager.handle_results(&mut self.store);
+        self.task_manager
+            .process_results(&mut self.store, &mut self.logger);
     }
 
     /// Set running to false to quit the application.
@@ -117,7 +119,6 @@ impl<S: DataStore<DataStoreKey>> App<S> {
             .sort_current_folder(self.ui_config.sort_by.clone());
     }
 
-    // MIGRATE: DONE
     pub fn on_toggle_move_to_trash(&mut self) {
         self.ui_config.move_to_trash = !self.ui_config.move_to_trash;
     }
@@ -140,24 +141,46 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         self.ui_config.confirming_deletion = false;
     }
 
-    // MIGRATE: DONE
-    fn navigate_to_parent(&mut self) {
-        let to_process_subfolders = self.store.move_to_parent();
-
-        self.logger.log(
-            self.store.get_current_path().to_string_lossy().to_string(),
-            MessageLevel::Info,
-        );
-        for subfolder in to_process_subfolders {
-            self.task_manager.maybe_add_task(&self.store, &subfolder);
+    pub fn on_open_file_explorer(&mut self) {
+        match open::that(self.store.get_current_path().to_string_lossy().to_string()) {
+            Ok(_) => {}
+            Err(_) => self.logger.log("Failed to open path".into(), None),
         }
     }
 
-    fn navigate_to_child(&mut self, title: &str) {
-        let child_path = self.store.move_to_child(title);
+    fn navigate_to_parent(&mut self) {
+        self.store.move_to_parent();
+
+        let updated_path = self.store.get_current_path().to_path_buf();
         self.logger
-            .log(child_path.to_string_lossy().to_string(), MessageLevel::Info);
-        self.task_manager.maybe_add_task(&self.store, &child_path);
+            .log(updated_path.to_string_lossy().to_string(), None);
+
+        let to_process = self
+            .task_manager
+            .process_path_sync(&mut self.store, &updated_path);
+
+        self.sort_current_folder();
+
+        self.task_manager.start(to_process, &mut self.logger);
+    }
+
+    fn navigate_to_child(&mut self, title: &str) {
+        self.store.move_to_child(title);
+
+        self.logger.log(
+            self.store.get_current_path().to_string_lossy().to_string(),
+            None,
+        );
+
+        match self.store.get_current_folder() {
+            Some(_) => {}
+            None => {
+                self.task_manager.start(
+                    vec![self.store.get_current_path().clone()],
+                    &mut self.logger,
+                );
+            }
+        }
     }
 
     pub fn on_backspace(&mut self) {
@@ -234,6 +257,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         }
     }
 
+    /// Currently updates size after deletion
     fn propagate_size_update_upwards(
         &mut self,
         to_delete_path: &Path,
@@ -248,7 +272,9 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                 {
                     if let Some(size) = parent_folder_entry.size.as_mut() {
                         match diff_kind {
-                            DiffKind::Subtract => *size -= entry_diff,
+                            DiffKind::Subtract => {
+                                *size = size.saturating_sub(entry_diff);
+                            }
                         }
                     }
                 }

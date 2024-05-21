@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug)]
@@ -10,6 +10,7 @@ pub enum MessageLevel {
 #[derive(Debug)]
 pub struct Logger {
     pub messages: VecDeque<(u128, MessageLevel, String)>,
+    timers: HashMap<String, SystemTime>,
 }
 
 impl Default for Logger {
@@ -22,18 +23,38 @@ impl Logger {
     fn new() -> Self {
         Logger {
             messages: VecDeque::new(),
+            timers: HashMap::new(),
         }
     }
 
-    pub fn log(&mut self, message: String, level: MessageLevel) {
+    pub fn log(&mut self, message: String, level: Option<MessageLevel>) {
+        let level = level.unwrap_or(MessageLevel::Info);
+
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
             .as_millis();
 
-        if self.messages.len() >= 10 {
+        if self.messages.len() >= 30 {
             self.messages.pop_back();
         }
         self.messages.push_front((timestamp, level, message));
+    }
+
+    pub fn start_timer(&mut self, name: &str) {
+        if self.timers.get(&name.to_string()).is_none() {
+            let timestamp = SystemTime::now();
+            self.timers.insert(name.to_string(), timestamp);
+        }
+    }
+
+    pub fn stop_timer(&mut self, name: &str) {
+        if let Some(start_time) = self.timers.remove(name) {
+            let diff = SystemTime::now()
+                .duration_since(start_time)
+                .expect("Time went backwards")
+                .as_secs_f64();
+            self.log(format!("[{}]: {:.1}s", name, diff), None);
+        }
     }
 }

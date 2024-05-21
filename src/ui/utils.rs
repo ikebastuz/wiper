@@ -48,11 +48,7 @@ pub fn value_to_box(value: &bool) -> String {
     }
 }
 
-pub fn folder_to_rows<'a>(
-    folder: &'a Folder,
-    config: &'a UIConfig,
-    loading_indicator: char,
-) -> Vec<Row<'a>> {
+pub fn folder_to_rows<'a>(folder: &'a Folder, config: &'a UIConfig) -> Vec<Row<'a>> {
     let max_entry_size = folder.get_max_entry_size();
 
     folder
@@ -75,13 +71,10 @@ pub fn folder_to_rows<'a>(
                 }
                 None => (Text::from(TEXT_UNKNOWN), Text::from(" "), NORMAL_ROW_COLOR),
             };
-            let mut prefix = match item.kind == FolderEntryType::Folder {
+            let prefix = match item.kind == FolderEntryType::Folder {
                 true => Text::from(TEXT_ICON_FOLDER_ASCII),
                 false => Text::from("  "),
             };
-            if item.is_loaded == false {
-                prefix = Text::from(format!("[{}]", loading_indicator));
-            }
 
             let mut bar_style = Style::default();
             if config.colored {
