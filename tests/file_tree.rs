@@ -93,6 +93,6 @@ mod file_tree {
         let mut app: App<DataStoreType> = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
-        assert_eq!(app.store.get_nodes_len(), 4);
+        assert_eq!(app.store.get_nodes_len(), 5);
     }
 }

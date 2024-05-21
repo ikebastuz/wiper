@@ -44,7 +44,7 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
     }
 
     pub fn start(&mut self, input: Vec<DataStoreKey>, logger: &mut Logger) {
-        logger.start_timer("TM-NG-proc");
+        logger.start_timer("Traversal");
         self.is_working = true;
         let entry_tx = self.event_tx.clone();
         let _ = std::thread::Builder::new()
@@ -72,7 +72,13 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                         let belongs_to = e.parent_path.to_path_buf();
                         let title = e.file_name.to_string_lossy().to_string();
                         let kind: FolderEntryType = match e.file_type().is_dir() {
-                            true => FolderEntryType::Folder,
+                            true => {
+                                /////////////////////// Create folder (cover empty folder case)
+                                let temp_folder = Folder::new(title.clone());
+                                store.set_folder(&e.path().clone(), temp_folder);
+                                ////////////////////////
+                                FolderEntryType::Folder
+                            }
                             false => FolderEntryType::File,
                         };
                         let size = match e.client_state.as_ref() {
@@ -143,7 +149,8 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                 },
                 TraversalEvent::Finished(_) => {
                     self.is_working = false;
-                    logger.stop_timer("TM-NG-proc");
+                    logger.stop_timer("Traversal");
+                    logger.log(format!("Folders: {}", store.get_nodes_len()), None);
                 }
             }
         }
@@ -160,7 +167,6 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
                 child_path.push(child.title.clone());
                 match store.get_folder_mut(&child_path) {
                     Some(f) => {
-                        folder_new.cursor_index = f.cursor_index;
                         child.size = Some(f.get_size());
                         entries_to_keep.push(child.clone());
                     }
@@ -171,6 +177,14 @@ impl<S: DataStore<DataStoreKey>> TaskManagerNg<S> {
             } else {
                 entries_to_keep.push(child.clone());
             }
+        }
+
+        // Persist cursor
+        match store.get_folder_mut(path) {
+            Some(f) => {
+                folder_new.cursor_index = f.cursor_index;
+            }
+            None => {}
         }
 
         folder_new.entries = entries_to_keep;

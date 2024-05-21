@@ -145,6 +145,8 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         self.store.move_to_parent();
 
         let updated_path = self.store.get_current_path().to_path_buf();
+        self.logger
+            .log(updated_path.to_string_lossy().to_string(), None);
 
         let to_process = self
             .task_manager
@@ -157,6 +159,21 @@ impl<S: DataStore<DataStoreKey>> App<S> {
 
     fn navigate_to_child(&mut self, title: &str) {
         self.store.move_to_child(title);
+
+        self.logger.log(
+            self.store.get_current_path().to_string_lossy().to_string(),
+            None,
+        );
+
+        match self.store.get_current_folder() {
+            Some(_) => {}
+            None => {
+                self.task_manager.start(
+                    vec![self.store.get_current_path().clone()],
+                    &mut self.logger,
+                );
+            }
+        }
     }
 
     pub fn on_backspace(&mut self) {
