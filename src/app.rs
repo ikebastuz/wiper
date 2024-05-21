@@ -4,7 +4,7 @@ use std::error;
 use crate::fps_counter::FPSCounter;
 use crate::fs::{delete_file, delete_folder, DataStore, DataStoreKey, FolderEntryType, SortBy};
 use crate::spinner::Spinner;
-use crate::task_manager::TaskManagerNg;
+use crate::task_manager::TaskManager;
 use std::path::{Path, PathBuf};
 
 use crate::config::{InitConfig, UIConfig};
@@ -27,7 +27,7 @@ pub struct App<S: DataStore<DataStoreKey>> {
     /// Is the application running?
     pub running: bool,
     /// Task manager for async jobs
-    pub task_manager: TaskManagerNg<S>,
+    pub task_manager: TaskManager<S>,
     /// Store for filesystem data
     pub store: S,
     /// Debug logger
@@ -64,7 +64,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                 open_file: true,
                 debug_enabled: false,
             },
-            task_manager: TaskManagerNg::<S>::new(),
+            task_manager: TaskManager::<S>::new(),
             store: S::new(),
             logger: Logger::default(),
             fps_counter: FPSCounter::default(),
