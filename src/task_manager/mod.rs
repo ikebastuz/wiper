@@ -158,32 +158,41 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         let mut paths_to_process: Vec<DataStoreKey> = vec![];
         let mut entries_to_keep: Vec<FolderEntry> = vec![];
 
-        for child in folder_new.entries.iter_mut() {
-            if child.kind == FolderEntryType::Folder {
-                let mut child_path = path.clone();
-                child_path.push(child.title.clone());
-                match store.get_folder_mut(&child_path) {
-                    Some(f) => {
-                        child.size = Some(f.get_size());
-                        child.is_loaded = f.entries.iter().all(|e| e.is_loaded);
-                        entries_to_keep.push(child.clone());
-                    }
-                    None => {
-                        paths_to_process.push(child_path);
+        match store.get_folder_mut(path) {
+            Some(folder_stored) => {
+                // Folder already exists
+                for child in folder_new.entries.iter_mut() {
+                    if !folder_stored.entries.iter().any(|e| e.title == child.title) {
+                        // No entry
+                        if child.kind == FolderEntryType::Folder {
+                            // Folder -> process
+                            let mut child_path = path.clone();
+                            child_path.push(child.title.clone());
+                            paths_to_process.push(child_path);
+                        } else {
+                            // File -> simply push
+                            folder_stored.entries.push(child.clone());
+                        }
                     }
                 }
-            } else {
-                entries_to_keep.push(child.clone());
+            }
+            None => {
+                // Folder does not exist
+                for child in folder_new.entries.iter_mut() {
+                    if child.kind == FolderEntryType::Folder {
+                        // Folder -> process
+                        let mut child_path = path.clone();
+                        child_path.push(child.title.clone());
+                        paths_to_process.push(child_path);
+                    } else {
+                        // File -> simply push
+                        entries_to_keep.push(child.clone());
+                    }
+                }
+                folder_new.entries = entries_to_keep;
+                store.set_folder(path, folder_new.clone());
             }
         }
-
-        // Persist cursor
-        if let Some(f) = store.get_folder_mut(path) {
-            folder_new.cursor_index = f.cursor_index;
-        }
-
-        folder_new.entries = entries_to_keep;
-        store.set_folder(path, folder_new.clone());
 
         paths_to_process
     }
