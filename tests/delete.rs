@@ -11,20 +11,11 @@ mod delete {
     use std::fs::{self, File};
     use std::io::Write;
 
-    const TEST_FILE_SIZE: usize = 446;
-    const TEST_FOLDER_SIZE: usize = 112;
-    const TEST_FODLER_EMPTY_SIZE: usize = 64;
+    const TEST_FILE_SIZE: usize = 100;
 
     fn generate_lorem_ipsum() -> String {
-        String::from(
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. \
-    Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. \
-    Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi \
-    ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit \
-    in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur \
-    sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt \
-    mollit anim id est laborum.",
-        )
+        // String is exactly 100 bytes
+        String::from("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore")
     }
 
     /// - folder_1
@@ -228,10 +219,7 @@ mod delete {
         handle_tasks_synchronously(&mut app);
 
         let root_entry = get_current_folder(&app).unwrap();
-        assert_eq!(
-            root_entry.get_size(),
-            (TEST_FILE_SIZE * 9 + TEST_FOLDER_SIZE * 4) as u64
-        );
+        assert_eq!(root_entry.get_size(), (TEST_FILE_SIZE * 9) as u64);
 
         app.on_cursor_down();
         app.on_cursor_down();
@@ -240,10 +228,7 @@ mod delete {
         handle_tasks_synchronously(&mut app);
 
         let root_entry_updated = get_current_folder(&app).unwrap();
-        assert_eq!(
-            root_entry_updated.get_size(),
-            (TEST_FILE_SIZE * 8 + TEST_FOLDER_SIZE * 4) as u64
-        );
+        assert_eq!(root_entry_updated.get_size(), (TEST_FILE_SIZE * 8) as u64);
 
         cleanup_testing_files(postfix);
     }
@@ -256,30 +241,21 @@ mod delete {
         handle_tasks_synchronously(&mut app);
 
         let root_entry = get_current_folder(&app).unwrap();
-        assert_eq!(
-            root_entry.get_size(),
-            (TEST_FILE_SIZE * 9 + TEST_FODLER_EMPTY_SIZE * 7) as u64
-        );
+        assert_eq!(root_entry.get_size(), (TEST_FILE_SIZE * 9) as u64);
 
         app.on_cursor_down();
         app.on_enter();
         handle_tasks_synchronously(&mut app);
 
         let folder_1 = get_current_folder(&app).unwrap();
-        assert_eq!(
-            folder_1.get_size(),
-            (TEST_FILE_SIZE * 6 + TEST_FODLER_EMPTY_SIZE * 4) as u64
-        );
+        assert_eq!(folder_1.get_size(), (TEST_FILE_SIZE * 6) as u64);
 
         app.on_cursor_down();
         app.on_enter();
         handle_tasks_synchronously(&mut app);
 
         let folder_2 = get_current_folder(&app).unwrap();
-        assert_eq!(
-            folder_2.get_size(),
-            (TEST_FILE_SIZE * 3 + TEST_FODLER_EMPTY_SIZE) as u64
-        );
+        assert_eq!(folder_2.get_size(), (TEST_FILE_SIZE * 3) as u64);
 
         app.on_cursor_down();
         app.on_cursor_down();
@@ -288,10 +264,7 @@ mod delete {
         handle_tasks_synchronously(&mut app);
 
         let folder_2_upd = get_current_folder(&app).unwrap();
-        assert_eq!(
-            folder_2_upd.get_size(),
-            (TEST_FILE_SIZE * 2 + TEST_FODLER_EMPTY_SIZE) as u64
-        );
+        assert_eq!(folder_2_upd.get_size(), (TEST_FILE_SIZE * 2) as u64);
 
         app.on_cursor_up();
         app.on_cursor_up();
@@ -299,13 +272,10 @@ mod delete {
         handle_tasks_synchronously(&mut app);
 
         let folder_1_upd = get_current_folder(&app).unwrap();
-        assert_eq!(
-            folder_1_upd.get_size(),
-            (TEST_FILE_SIZE * 5 + TEST_FODLER_EMPTY_SIZE) as u64
-        );
+        assert_eq!(folder_1_upd.get_size(), (TEST_FILE_SIZE * 5) as u64);
         assert_eq!(
             folder_1_upd.get_selected_entry_size(),
-            (TEST_FILE_SIZE * 2 + TEST_FODLER_EMPTY_SIZE) as u64
+            (TEST_FILE_SIZE * 2) as u64
         );
 
         app.on_cursor_up();
@@ -313,13 +283,10 @@ mod delete {
         handle_tasks_synchronously(&mut app);
 
         let root_entry_upd = get_current_folder(&app).unwrap();
-        assert_eq!(
-            root_entry_upd.get_size(),
-            (TEST_FILE_SIZE * 8 + TEST_FODLER_EMPTY_SIZE) as u64
-        );
+        assert_eq!(root_entry_upd.get_size(), (TEST_FILE_SIZE * 8) as u64);
         assert_eq!(
             root_entry_upd.get_selected_entry_size(),
-            (TEST_FILE_SIZE * 5 + TEST_FODLER_EMPTY_SIZE) as u64
+            (TEST_FILE_SIZE * 5) as u64
         );
 
         cleanup_testing_files(postfix);
@@ -333,20 +300,14 @@ mod delete {
         handle_tasks_synchronously(&mut app);
 
         let root_entry = get_current_folder(&app).unwrap();
-        assert_eq!(
-            root_entry.get_size(),
-            (TEST_FILE_SIZE * 9 + TEST_FODLER_EMPTY_SIZE * 7) as u64
-        );
+        assert_eq!(root_entry.get_size(), (TEST_FILE_SIZE * 9) as u64);
 
         app.on_cursor_down();
         app.on_enter();
         handle_tasks_synchronously(&mut app);
 
         let folder_1 = get_current_folder(&app).unwrap();
-        assert_eq!(
-            folder_1.get_size(),
-            (TEST_FILE_SIZE * 6 + TEST_FODLER_EMPTY_SIZE * 4) as u64
-        );
+        assert_eq!(folder_1.get_size(), (TEST_FILE_SIZE * 6) as u64);
 
         app.on_cursor_down();
         app.on_delete();

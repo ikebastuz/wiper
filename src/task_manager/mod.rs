@@ -76,15 +76,21 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                             true => {
                                 // Create store record for folder (edge-case for last-leaf-empty
                                 // folders)
-                                let temp_folder = Folder::new(title.clone());
-                                store.set_folder(&e.path().clone(), temp_folder);
+                                let default_folder = Folder::new(title.clone());
+                                store.set_folder(&e.path().clone(), default_folder);
 
                                 FolderEntryType::Folder
                             }
                             false => FolderEntryType::File,
                         };
                         let size = match e.client_state.as_ref() {
-                            Some(Ok(my_entry)) => my_entry.size,
+                            Some(Ok(my_entry)) => {
+                                if kind == FolderEntryType::Folder {
+                                    0
+                                } else {
+                                    my_entry.size
+                                }
+                            }
                             _ => 0,
                         };
                         let folder_entry = FolderEntry {
@@ -147,7 +153,6 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                 TraversalEvent::Finished(_) => {
                     self.is_working = false;
                     logger.stop_timer("Traversal");
-                    logger.log(format!("Folders: {}", store.get_nodes_len()));
                 }
             }
         }
