@@ -86,6 +86,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                         let size = match e.client_state.as_ref() {
                             Some(Ok(my_entry)) => {
                                 if kind == FolderEntryType::Folder {
+                                    // Ignore folder metadata size
                                     0
                                 } else {
                                     my_entry.size
