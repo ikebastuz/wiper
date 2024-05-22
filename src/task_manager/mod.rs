@@ -141,13 +141,13 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                         }
                     }
                     Err(_) => {
-                        logger.log("Done".into(), None);
+                        logger.log("Done".into());
                     }
                 },
                 TraversalEvent::Finished(_) => {
                     self.is_working = false;
                     logger.stop_timer("Traversal");
-                    logger.log(format!("Folders: {}", store.get_nodes_len()), None);
+                    logger.log(format!("Folders: {}", store.get_nodes_len()));
                 }
             }
         }

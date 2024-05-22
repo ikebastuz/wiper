@@ -78,8 +78,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
 
     pub fn init(&mut self) {
         let path_buf = self.store.get_current_path().clone();
-        self.logger
-            .log(path_buf.to_string_lossy().to_string(), None);
+        self.logger.log(path_buf.to_string_lossy().to_string());
 
         self.task_manager.start(vec![path_buf], &mut self.logger);
     }
@@ -144,7 +143,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     pub fn on_open_file_explorer(&mut self) {
         match open::that(self.store.get_current_path().to_string_lossy().to_string()) {
             Ok(_) => {}
-            Err(_) => self.logger.log("Failed to open path".into(), None),
+            Err(_) => self.logger.log("Failed to open path".into()),
         }
     }
 
@@ -152,8 +151,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         self.store.move_to_parent();
 
         let updated_path = self.store.get_current_path().to_path_buf();
-        self.logger
-            .log(updated_path.to_string_lossy().to_string(), None);
+        self.logger.log(updated_path.to_string_lossy().to_string());
 
         let to_process = self
             .task_manager
@@ -167,10 +165,8 @@ impl<S: DataStore<DataStoreKey>> App<S> {
     fn navigate_to_child(&mut self, title: &str) {
         self.store.move_to_child(title);
 
-        self.logger.log(
-            self.store.get_current_path().to_string_lossy().to_string(),
-            None,
-        );
+        self.logger
+            .log(self.store.get_current_path().to_string_lossy().to_string());
 
         match self.store.get_current_folder() {
             Some(_) => {}
