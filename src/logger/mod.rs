@@ -27,9 +27,7 @@ impl Logger {
         }
     }
 
-    pub fn log(&mut self, message: String, level: Option<MessageLevel>) {
-        let level = level.unwrap_or(MessageLevel::Info);
-
+    pub fn log(&mut self, message: String) {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
@@ -38,7 +36,8 @@ impl Logger {
         if self.messages.len() >= 30 {
             self.messages.pop_back();
         }
-        self.messages.push_front((timestamp, level, message));
+        self.messages
+            .push_front((timestamp, MessageLevel::Info, message));
     }
 
     pub fn start_timer(&mut self, name: &str) {
@@ -54,7 +53,7 @@ impl Logger {
                 .duration_since(start_time)
                 .expect("Time went backwards")
                 .as_secs_f64();
-            self.log(format!("[{}]: {:.1}s", name, diff), None);
+            self.log(format!("[{}]: {:.1}s", name, diff));
         }
     }
 }
