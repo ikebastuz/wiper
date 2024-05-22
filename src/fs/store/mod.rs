@@ -50,12 +50,6 @@ pub trait DataStore<T> {
     fn get_nodes_len(&self) -> usize;
 
     fn get_keys(&mut self) -> Vec<T>;
-
-    fn append_file_type_size(&mut self, file_type: String, size: u64);
-
-    // fn get_sorted_file_types_by_size(&self) -> Vec<(String, u64)>;
-
-    fn get_chart_data(&self, threshold: f64) -> Vec<(String, u64)>;
 }
 
 pub type DataStoreKey = PathBuf;

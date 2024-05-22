@@ -22,7 +22,10 @@ pub fn render_chart(area: Rect, buf: &mut Buffer, chart_data: Vec<(String, u64)>
         .split(inner_area);
 
     for (i, (file_type, size)) in chart_data.iter().enumerate() {
-        let text = format!("{}: {}", file_type, format_file_size(*size));
+        let mut text = format!("{}: {}", file_type, format_file_size(*size));
+        if i == chart_data.len() - 1 {
+            text = file_type.to_string();
+        }
         let paragraph = Paragraph::new(text)
             .centered()
             .block(Block::default().borders(Borders::ALL));

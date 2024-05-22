@@ -84,8 +84,8 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                             true => {
                                 // Create store record for folder (edge-case for last-leaf-empty
                                 // folders)
-                                let temp_folder = Folder::new(title.clone());
-                                store.set_folder(&e.path().clone(), temp_folder);
+                                let initial_folder = Folder::new(title.clone());
+                                store.set_folder(&e.path().clone(), initial_folder);
 
                                 FolderEntryType::Folder
                             }
@@ -95,10 +95,6 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                             Some(Ok(my_entry)) => my_entry.size,
                             _ => 0,
                         };
-
-                        if !extension.is_empty() {
-                            store.append_file_type_size(extension, size);
-                        }
 
                         let folder_entry = FolderEntry {
                             title: title.clone(),
@@ -111,6 +107,9 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                         let parent_folder = store.get_folder_mut(&belongs_to.to_path_buf());
                         match parent_folder {
                             Some(folder) => {
+                                if !extension.is_empty() {
+                                    folder.append_file_type_size(&extension, size);
+                                }
                                 folder.entries.push(folder_entry);
                             }
                             None => {
@@ -136,6 +135,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                                 if let Some(parent_folder) =
                                     store.get_folder_mut(&PathBuf::from(parent_buf))
                                 {
+                                    // Increment parent's entry size
                                     for child in parent_folder.entries.iter_mut() {
                                         if child.title == title_traverse
                                             && child.kind == FolderEntryType::Folder
@@ -144,6 +144,10 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                                             parent_folder.sorted_by = None;
                                             break;
                                         }
+                                    }
+                                    // Update parent's folder file_type_map
+                                    if !extension.is_empty() {
+                                        parent_folder.append_file_type_size(&extension, size);
                                     }
                                     title_traverse = parent_folder.title.clone();
                                     path_traverse = parent_buf.to_path_buf();
@@ -160,9 +164,6 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                 TraversalEvent::Finished(_) => {
                     self.is_working = false;
                     logger.stop_timer("Traversal");
-                    logger.log(format!("Folders: {}", store.get_nodes_len()), None);
-                    let temp = store.get_chart_data(0.9);
-                    logger.log(format!("Keys: {:#?}", temp), None);
                 }
             }
         }
@@ -195,6 +196,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         // Persist cursor
         if let Some(f) = store.get_folder_mut(path) {
             folder_new.cursor_index = f.cursor_index;
+            folder_new.file_type_map = f.file_type_map.clone();
         }
 
         folder_new.entries = entries_to_keep;

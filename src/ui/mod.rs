@@ -22,6 +22,8 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
         self.pre_render();
         let maybe_folder = self.store.get_current_folder();
 
+        let mut chart_data = vec![];
+
         // Helper data
         let fps = self.fps_counter.update();
         let (spin_left, spin_right) = self.spinner.get_icons(!self.task_manager.is_working);
@@ -41,6 +43,7 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
                 title = "Error";
                 border_color = TEXT_PRE_DELETED_BG;
             }
+            chart_data = folder.get_chart_data(0.8);
         }
 
         let block = Block::default()
@@ -71,7 +74,7 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
             &self.logger,
             &debug,
         );
-        render_chart(chart_area, buf, self.store.get_chart_data(0.8));
+        render_chart(chart_area, buf, chart_data);
         render_footer(footer_area, buf);
     }
 }

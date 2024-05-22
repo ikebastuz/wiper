@@ -14,18 +14,6 @@ pub struct DSHashmap {
     pub file_type_map: HashMap<String, u64>,
 }
 
-impl DSHashmap {
-    fn get_sorted_file_types_by_size(&self) -> Vec<(String, u64)> {
-        let mut file_types: Vec<(String, u64)> = self
-            .file_type_map
-            .iter()
-            .map(|(k, &v)| (k.clone(), v))
-            .collect();
-        file_types.sort_by(|a, b| b.1.cmp(&a.1));
-        file_types
-    }
-}
-
 impl DataStore<DataStoreKey> for DSHashmap {
     fn new() -> DSHashmap {
         DSHashmap {
@@ -115,33 +103,5 @@ impl DataStore<DataStoreKey> for DSHashmap {
 
     fn get_keys(&mut self) -> Vec<PathBuf> {
         self.store.keys().cloned().collect()
-    }
-
-    fn append_file_type_size(&mut self, file_type: String, size: u64) {
-        let total_size = self.file_type_map.entry(file_type).or_insert(0);
-        *total_size += size;
-    }
-
-    fn get_chart_data(&self, threshold: f64) -> Vec<(String, u64)> {
-        let sorted_file_types = self.get_sorted_file_types_by_size();
-        let total_size: u64 = sorted_file_types.iter().map(|(_, size)| *size).sum();
-        let mut accumulated_size: u64 = 0;
-        let mut chart_data: Vec<(String, u64)> = Vec::new();
-        let mut rest_size: u64 = 0;
-
-        for (file_type, size) in sorted_file_types {
-            if accumulated_size as f64 / total_size as f64 <= threshold {
-                chart_data.push((file_type, size));
-                accumulated_size += size;
-            } else {
-                rest_size += size;
-            }
-        }
-
-        if rest_size > 0 {
-            chart_data.push(("rest".to_string(), rest_size));
-        }
-
-        chart_data
     }
 }
