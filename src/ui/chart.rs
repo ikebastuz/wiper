@@ -23,7 +23,7 @@ pub fn render_chart(area: Rect, buf: &mut Buffer, chart_data: Vec<(String, u64)>
 
     for (i, (file_type, size)) in chart_data.iter().enumerate() {
         let mut text = format!("{}: {}", file_type, format_file_size(*size));
-        // Hide size from "remainder"
+        // Hide size from "short" filytypes
         if percentages[i] < 10 {
             text = file_type.to_string();
         }
