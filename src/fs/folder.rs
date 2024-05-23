@@ -123,15 +123,17 @@ impl Folder {
         file_types
     }
 
-    pub fn get_chart_data(&self, threshold: f64) -> Vec<(String, u64)> {
+    pub fn get_chart_data(&self, threshold: f64, max_items: usize) -> Vec<(String, u64)> {
         let sorted_file_types = self.get_sorted_file_types_by_size();
         let total_size: u64 = sorted_file_types.iter().map(|(_, size)| *size).sum();
         let mut accumulated_size: u64 = 0;
         let mut chart_data: Vec<(String, u64)> = Vec::new();
         let mut rest_size: u64 = 0;
 
-        for (file_type, size) in sorted_file_types {
-            if accumulated_size as f64 / total_size as f64 <= threshold {
+        for (_i, (file_type, size)) in sorted_file_types.into_iter().enumerate() {
+            if accumulated_size as f64 / total_size as f64 <= threshold
+                && chart_data.len() < max_items - 1
+            {
                 chart_data.push((file_type, size));
                 accumulated_size += size;
             } else {

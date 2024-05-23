@@ -43,7 +43,7 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
                 title = "Error";
                 border_color = TEXT_PRE_DELETED_BG;
             }
-            chart_data = folder.get_chart_data(0.8);
+            chart_data = folder.get_chart_data(0.8, 5);
         }
 
         let block = Block::default()
