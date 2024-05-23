@@ -156,7 +156,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                                     if !extension.is_empty() {
                                         parent_folder.append_file_type_size(&extension, size);
                                     }
-                                    title_traverse = parent_folder.title.clone();
+                                    title_traverse.clone_from(&parent_folder.title);
                                     path_traverse = parent_buf.to_path_buf();
                                 } else {
                                     break;

@@ -130,7 +130,7 @@ impl Folder {
         let mut chart_data: Vec<(String, u64)> = Vec::new();
         let mut rest_size: u64 = 0;
 
-        for (_i, (file_type, size)) in sorted_file_types.into_iter().enumerate() {
+        for (file_type, size) in sorted_file_types.into_iter() {
             if accumulated_size as f64 / total_size as f64 <= threshold
                 && chart_data.len() < max_items - 1
             {

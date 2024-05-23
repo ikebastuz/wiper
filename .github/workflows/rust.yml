@@ -23,4 +23,4 @@ jobs:
     - name: Run tests
       run: cargo test
     - name: Run Clippy
-      run: cargo clippy
+      run: cargo clippy --all-targets -- -D warnings
