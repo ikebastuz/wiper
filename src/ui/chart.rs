@@ -13,7 +13,7 @@ pub fn render_chart(area: Rect, buf: &mut Buffer, chart_data: Vec<(String, u64)>
         .map(|(_, size)| (size * 100 / total_size) as u16)
         .collect();
 
-    let mut constraints = Constraint::from_percentages(percentages);
+    let mut constraints = Constraint::from_percentages(percentages.clone());
     constraints.pop();
     constraints.push(Constraint::Fill(1));
     let layout = Layout::default()
@@ -24,7 +24,7 @@ pub fn render_chart(area: Rect, buf: &mut Buffer, chart_data: Vec<(String, u64)>
     for (i, (file_type, size)) in chart_data.iter().enumerate() {
         let mut text = format!("{}: {}", file_type, format_file_size(*size));
         // Hide size from "remainder"
-        if i == chart_data.len() - 1 && chart_data.len() > 1 {
+        if percentages[i] < 10 {
             text = file_type.to_string();
         }
         let paragraph = Paragraph::new(text)
