@@ -19,7 +19,7 @@ pub fn setup_app_view<S: DataStore<DataStoreKey>>() -> App<S> {
 
 pub fn setup_app_edit<S: DataStore<DataStoreKey>>(postfix: &str) -> App<S> {
     let c = InitConfig {
-        file_path: Some(format!("{}_{}", TEST_FILE_PATH_EDIT.to_string(), postfix)),
+        file_path: Some(format!("{}_{}", TEST_FILE_PATH_EDIT, postfix)),
     };
     let mut app: App<S> = App::new(c);
     app.ui_config.open_file = false;
@@ -122,23 +122,23 @@ pub fn assert_cursor_index<S: DataStore<DataStoreKey>>(app: &App<S>, index: usiz
 }
 
 pub fn assert_root_view_folder_sorted_by_title<S: DataStore<DataStoreKey>>(app: &App<S>) {
-    assert_item_at_index_title(&app, 0, "..".to_string());
-    assert_item_at_index_title(&app, 1, "a_folder".to_string());
-    assert_item_at_index_title(&app, 2, "b_folder".to_string());
-    assert_item_at_index_title(&app, 3, "c_folder".to_string());
-    assert_item_at_index_title(&app, 4, "a_root_file.txt".to_string());
-    assert_item_at_index_title(&app, 5, "d_root_file.txt".to_string());
-    assert_item_at_index_title(&app, 6, "z_root_file.txt".to_string());
+    assert_item_at_index_title(app, 0, "..".to_string());
+    assert_item_at_index_title(app, 1, "a_folder".to_string());
+    assert_item_at_index_title(app, 2, "b_folder".to_string());
+    assert_item_at_index_title(app, 3, "c_folder".to_string());
+    assert_item_at_index_title(app, 4, "a_root_file.txt".to_string());
+    assert_item_at_index_title(app, 5, "d_root_file.txt".to_string());
+    assert_item_at_index_title(app, 6, "z_root_file.txt".to_string());
 }
 
 pub fn assert_root_view_folder_sorted_by_size<S: DataStore<DataStoreKey>>(app: &App<S>) {
-    assert_item_at_index_title(&app, 0, "..".to_string());
-    assert_item_at_index_title(&app, 1, "b_folder".to_string());
-    assert_item_at_index_title(&app, 2, "c_folder".to_string());
-    assert_item_at_index_title(&app, 3, "a_folder".to_string());
-    assert_item_at_index_title(&app, 4, "d_root_file.txt".to_string());
-    assert_item_at_index_title(&app, 5, "a_root_file.txt".to_string());
-    assert_item_at_index_title(&app, 6, "z_root_file.txt".to_string());
+    assert_item_at_index_title(app, 0, "..".to_string());
+    assert_item_at_index_title(app, 1, "b_folder".to_string());
+    assert_item_at_index_title(app, 2, "c_folder".to_string());
+    assert_item_at_index_title(app, 3, "a_folder".to_string());
+    assert_item_at_index_title(app, 4, "d_root_file.txt".to_string());
+    assert_item_at_index_title(app, 5, "a_root_file.txt".to_string());
+    assert_item_at_index_title(app, 6, "z_root_file.txt".to_string());
 }
 
 pub fn get_current_folder<S: DataStore<DataStoreKey>>(app: &App<S>) -> Option<&Folder> {

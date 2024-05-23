@@ -34,7 +34,7 @@ mod delete {
         let custom_folder = format!("{}_{}", TEST_FILE_PATH_EDIT, postfix);
         fs::create_dir_all(&custom_folder).expect("Failed to create test folder");
 
-        let mut folder_path = format!("{}", custom_folder);
+        let mut folder_path = custom_folder.to_string();
 
         for folder_index in 1..4 {
             for file_index in 1..4 {
@@ -111,10 +111,10 @@ mod delete {
 
         app.on_delete();
         app.on_cursor_down();
-        assert_eq!(app.ui_config.confirming_deletion, false);
+        assert!(!app.ui_config.confirming_deletion);
         app.on_delete();
         app.on_cursor_up();
-        assert_eq!(app.ui_config.confirming_deletion, false);
+        assert!(!app.ui_config.confirming_deletion);
         cleanup_testing_files(postfix);
     }
 
@@ -128,7 +128,7 @@ mod delete {
         app.on_cursor_down();
         app.on_delete();
         app.on_enter();
-        assert_eq!(app.ui_config.confirming_deletion, false);
+        assert!(!app.ui_config.confirming_deletion);
         cleanup_testing_files(postfix);
     }
 
@@ -142,7 +142,7 @@ mod delete {
         app.on_cursor_down();
         app.on_delete();
         app.on_delete();
-        assert_eq!(app.ui_config.confirming_deletion, false);
+        assert!(!app.ui_config.confirming_deletion);
         cleanup_testing_files(postfix);
     }
 
@@ -157,7 +157,7 @@ mod delete {
         app.on_cursor_down();
         app.on_delete();
         app.on_delete();
-        assert_eq!(app.ui_config.confirming_deletion, false);
+        assert!(!app.ui_config.confirming_deletion);
         cleanup_testing_files(postfix);
     }
 
@@ -171,7 +171,7 @@ mod delete {
         app.on_cursor_down();
         app.on_delete();
         app.on_escape();
-        assert_eq!(app.ui_config.confirming_deletion, false);
+        assert!(!app.ui_config.confirming_deletion);
         cleanup_testing_files(postfix);
     }
 

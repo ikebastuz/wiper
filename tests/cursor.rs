@@ -14,13 +14,13 @@ mod cursor {
         let mut app: App<DataStoreType> = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
-        assert_cursor_index(&mut app, 0);
+        assert_cursor_index(&app, 0);
 
         app.on_cursor_down();
-        assert_cursor_index(&mut app, 1);
+        assert_cursor_index(&app, 1);
 
         app.on_cursor_up();
-        assert_cursor_index(&mut app, 0);
+        assert_cursor_index(&app, 0);
     }
 
     #[test]
@@ -28,13 +28,13 @@ mod cursor {
         let mut app: App<DataStoreType> = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
-        assert_cursor_index(&mut app, 0);
+        assert_cursor_index(&app, 0);
 
         for _ in 0..10 {
             app.on_cursor_up();
         }
 
-        assert_cursor_index(&mut app, 0);
+        assert_cursor_index(&app, 0);
     }
 
     #[test]
@@ -45,6 +45,6 @@ mod cursor {
         for _ in 0..20 {
             app.on_cursor_down();
         }
-        assert_cursor_index(&mut app, 6);
+        assert_cursor_index(&app, 6);
     }
 }

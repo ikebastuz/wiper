@@ -28,7 +28,7 @@ impl DataStore<DataStoreKey> for DSHashmap {
     }
 
     fn set_current_path(&mut self, path: &PathBuf) {
-        self.current_path = path.clone();
+        self.current_path.clone_from(path);
     }
 
     fn has_path(&self, path: &PathBuf) -> bool {
@@ -79,7 +79,7 @@ impl DataStore<DataStoreKey> for DSHashmap {
     fn move_to_parent(&mut self) {
         if let Some(parent) = &self.current_path.parent() {
             let parent_buf = parent.to_path_buf();
-            self.current_path = parent_buf.clone();
+            self.current_path.clone_from(&parent_buf);
         }
     }
 
