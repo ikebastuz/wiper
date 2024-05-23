@@ -9,14 +9,13 @@
 - [x] - Debug slow parent navigation
 - [ ] - Check folder permissions
 - [x] - Show loading folder indicator if it is not calculated completely
-- [ ] - File extension chart
+- [x] - File extension chart
 
 
 #### Non-functional
 - [x] - Lint with clippy
 - [x] - Colored first letters (keybindings)
-- [ ] - Better list scrolling
-- [ ] - Maybe auto-center cursor
+- [ ] - Better list scrolling (maybe auto-center cursor)
 - [ ] - Refactor unit tests for easier state awaiting
 
 #### Performance
@@ -24,8 +23,6 @@
 - [x] - Optimize folder sorting
 - [ ] - Prevent from locking main thread, always process inputs
 - [ ] - Review all variable clones, optimize
-- [ ] - Check Mutex locks for performance improvements
-- [ ] - Consider having threadpool instead of single extra thread
 
 ## Scripts
 #### Run
