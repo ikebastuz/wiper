@@ -2,6 +2,7 @@ use crate::ui::constants::TEXT_PARENT_DIR;
 
 use crate::fs::folder_entry::{FolderEntry, FolderEntryType};
 use std::cmp::Ordering;
+use std::collections::HashMap;
 
 use super::SortBy;
 
@@ -12,6 +13,7 @@ pub struct Folder {
     pub sorted_by: Option<SortBy>,
     pub entries: Vec<FolderEntry>,
     pub has_error: bool,
+    pub file_type_map: HashMap<String, u64>,
 }
 
 impl Folder {
@@ -27,6 +29,7 @@ impl Folder {
                 is_loaded: true,
             }],
             has_error: false,
+            file_type_map: HashMap::new(),
         }
     }
 
@@ -103,5 +106,45 @@ impl Folder {
                 Ordering::Equal
             }
         });
+    }
+
+    pub fn append_file_type_size(&mut self, file_type: &String, size: u64) {
+        let total_size = self.file_type_map.entry(file_type.to_owned()).or_insert(0);
+        *total_size += size;
+    }
+
+    fn get_sorted_file_types_by_size(&self) -> Vec<(String, u64)> {
+        let mut file_types: Vec<(String, u64)> = self
+            .file_type_map
+            .iter()
+            .map(|(k, &v)| (k.clone(), v))
+            .collect();
+        file_types.sort_by(|a, b| b.1.cmp(&a.1));
+        file_types
+    }
+
+    pub fn get_chart_data(&self, threshold: f64, max_items: usize) -> Vec<(String, u64)> {
+        let sorted_file_types = self.get_sorted_file_types_by_size();
+        let total_size: u64 = sorted_file_types.iter().map(|(_, size)| *size).sum();
+        let mut accumulated_size: u64 = 0;
+        let mut chart_data: Vec<(String, u64)> = Vec::new();
+        let mut rest_size: u64 = 0;
+
+        for (_i, (file_type, size)) in sorted_file_types.into_iter().enumerate() {
+            if accumulated_size as f64 / total_size as f64 <= threshold
+                && chart_data.len() < max_items - 1
+            {
+                chart_data.push((file_type, size));
+                accumulated_size += size;
+            } else {
+                rest_size += size;
+            }
+        }
+
+        if rest_size > 0 {
+            chart_data.push(("rest".to_string(), rest_size));
+        }
+
+        chart_data
     }
 }

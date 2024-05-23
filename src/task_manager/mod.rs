@@ -1,6 +1,7 @@
 use crate::fs::{path_to_folder, DataStore, DataStoreKey, Folder, FolderEntry, FolderEntryType};
 use crate::logger::Logger;
 use crossbeam::channel::{Receiver, Sender};
+use std::ffi::OsStr;
 use std::marker::PhantomData;
 use std::path::PathBuf;
 
@@ -72,6 +73,13 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                         // Construct entry
                         let belongs_to = e.parent_path.to_path_buf();
                         let title = e.file_name.to_string_lossy().to_string();
+                        let extension = e
+                            .path()
+                            .extension()
+                            .and_then(OsStr::to_str)
+                            .unwrap_or("")
+                            .to_string();
+
                         let kind = match e.file_type().is_dir() {
                             true => {
                                 // Create store record for folder (edge-case for last-leaf-empty
@@ -94,6 +102,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                             }
                             _ => 0,
                         };
+
                         let folder_entry = FolderEntry {
                             title: title.clone(),
                             size: Some(size),
@@ -105,6 +114,9 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                         let parent_folder = store.get_folder_mut(&belongs_to.to_path_buf());
                         match parent_folder {
                             Some(folder) => {
+                                if !extension.is_empty() {
+                                    folder.append_file_type_size(&extension, size);
+                                }
                                 folder.entries.push(folder_entry);
                             }
                             None => {
@@ -130,6 +142,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                                 if let Some(parent_folder) =
                                     store.get_folder_mut(&PathBuf::from(parent_buf))
                                 {
+                                    // Increment parent's entry size
                                     for child in parent_folder.entries.iter_mut() {
                                         if child.title == title_traverse
                                             && child.kind == FolderEntryType::Folder
@@ -138,6 +151,10 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
                                             parent_folder.sorted_by = None;
                                             break;
                                         }
+                                    }
+                                    // Update parent's folder file_type_map
+                                    if !extension.is_empty() {
+                                        parent_folder.append_file_type_size(&extension, size);
                                     }
                                     title_traverse = parent_folder.title.clone();
                                     path_traverse = parent_buf.to_path_buf();

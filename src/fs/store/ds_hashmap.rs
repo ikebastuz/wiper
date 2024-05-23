@@ -11,6 +11,7 @@ pub struct DSHashmap {
     pub current_path: PathBuf,
     /// Map for all file paths
     pub store: FileTreeMap,
+    pub file_type_map: HashMap<String, u64>,
 }
 
 impl DataStore<DataStoreKey> for DSHashmap {
@@ -18,6 +19,7 @@ impl DataStore<DataStoreKey> for DSHashmap {
         DSHashmap {
             current_path: PathBuf::from("."),
             store: HashMap::new(),
+            file_type_map: HashMap::new(),
         }
     }
 
