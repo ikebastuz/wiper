@@ -2,7 +2,7 @@
 
 Wiper is a handy command-line tool made with Rust. It's perfect for anyone looking to quickly spot which folders are eating up all the disk space. Super easy to use, it gives you a clear visual breakdown of directory sizes, so you can clean things up without a hassle.
 
-https://github.com/ikebastuz/wiper/assets/24222413/384d302a-6de7-4527-b834-a50142cc8aca
+https://github.com/ikebastuz/wiper/assets/24222413/acf9384d-7f04-4f37-ac47-99b349e6ee29
 
 ## Features
 - Fast and Efficient: Quickly scans directories and subdirectories to provide size metrics.  
@@ -50,7 +50,6 @@ cargo build --release
 
 ## Contributing
 If you have any suggestions, improvements, or bug fixes, feel free to open an issue or submit a pull request.
-Current list of TODOs you can find [here](src/README.md)
 
 ## Why not [dua-cli](https://github.com/Byron/dua-cli)?
 I started this project as part of my journey to learn Rust. I always missed having such a tool but had never heard of dua-cli. From my understanding, there are some differences:
