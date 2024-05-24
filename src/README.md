@@ -34,11 +34,11 @@ cargo run -- [PATH]
 ```
 #### Lint
 ```bash
-cargo clippy
+cargo clippy --all-targets -- -D warnings
 ```
 #### Test
 ```bash
-cargo test -- --nocapture
+cargo test
 ```
 #### Build
 ```bash

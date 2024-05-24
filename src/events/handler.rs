@@ -39,6 +39,9 @@ pub fn handle_key_events<S: DataStore<DataStoreKey>>(
         KeyCode::Char('e') => {
             app.on_open_file_explorer();
         }
+        KeyCode::Char('r') => {
+            app.reset();
+        }
         KeyCode::Char('d') => {
             if key_event.modifiers == KeyModifiers::CONTROL {
                 app.toggle_debug();
