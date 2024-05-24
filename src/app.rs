@@ -83,6 +83,14 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         self.task_manager.start(vec![path_buf], &mut self.logger);
     }
 
+    pub fn reset(&mut self) {
+        let current_path = self.store.get_current_path().clone();
+        self.store = S::new();
+        self.store.set_current_path(&current_path);
+
+        self.init();
+    }
+
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
         self.task_manager

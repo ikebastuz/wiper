@@ -7,8 +7,8 @@ use ratatui::{prelude::*, widgets::*};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::ui::constants::{
-    NORMAL_ROW_COLOR, TABLE_HEADER_BG, TABLE_HEADER_FG, TABLE_SPACE_WIDTH, TEXT_COLOR,
-    TEXT_PRE_DELETED_BG, TEXT_SELECTED_BG,
+    NORMAL_ROW_COLOR, TABLE_HEADER_BG, TABLE_HEADER_FG, TABLE_ICON_WIDTH, TABLE_NAME_WIDTH,
+    TABLE_SIZE_WIDTH, TABLE_SPACE_WIDTH, TEXT_COLOR, TEXT_PRE_DELETED_BG, TEXT_SELECTED_BG,
 };
 use crate::ui::utils::folder_to_rows;
 
@@ -47,11 +47,20 @@ pub fn render_content(
 
 pub fn render_table(area: Rect, buf: &mut Buffer, folder: &Folder, config: &UIConfig) {
     let block = Block::default()
-        .borders(Borders::ALL)
         .padding(Padding::horizontal(1))
+        .borders(Borders::ALL)
         .border_set(symbols::border::PROPORTIONAL_TALL)
         .fg(TEXT_COLOR)
         .bg(NORMAL_ROW_COLOR);
+
+    let layout = Layout::horizontal([
+        Constraint::Fill(1),
+        Constraint::Length(
+            TABLE_ICON_WIDTH + TABLE_NAME_WIDTH + TABLE_SIZE_WIDTH + TABLE_SPACE_WIDTH as u16 + 4,
+        ),
+        Constraint::Fill(1),
+    ]);
+    let [_, col_table, _] = layout.areas(area);
 
     let header_style = Style::default().fg(TABLE_HEADER_FG).bg(TABLE_HEADER_BG);
     let selected_style = if config.confirming_deletion {
@@ -77,9 +86,9 @@ pub fn render_table(area: Rect, buf: &mut Buffer, folder: &Folder, config: &UICo
     let table = Table::new(
         rows,
         [
-            Constraint::Length(2),
-            Constraint::Length(40),
-            Constraint::Length(20),
+            Constraint::Length(TABLE_ICON_WIDTH),
+            Constraint::Length(TABLE_NAME_WIDTH),
+            Constraint::Length(TABLE_SIZE_WIDTH),
             Constraint::Length(TABLE_SPACE_WIDTH as u16),
         ],
     )
@@ -91,7 +100,7 @@ pub fn render_table(area: Rect, buf: &mut Buffer, folder: &Folder, config: &UICo
 
     StatefulWidget::render(
         table,
-        area,
+        col_table,
         buf,
         &mut TableState::default().with_selected(Some(folder.cursor_index)),
     );
