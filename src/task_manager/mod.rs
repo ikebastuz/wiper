@@ -44,7 +44,12 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         !self.is_working
     }
 
-    pub fn start(&mut self, input: Vec<DataStoreKey>, logger: &mut Logger) {
+    pub fn start(
+        &mut self,
+        input: Vec<DataStoreKey>,
+        logger: &mut Logger,
+        walk_enabled: bool,
+    ) {
         logger.start_timer("Traversal");
         self.is_working = true;
         let entry_tx = self.event_tx.clone();
@@ -53,7 +58,9 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
             .spawn({
                 move || {
                     for root_path in input.into_iter() {
-                        for entry in Self::iter_from_path(&root_path).into_iter() {
+                        for entry in
+                            Self::iter_from_path(&root_path, walk_enabled).into_iter()
+                        {
                             if entry_tx.send(TraversalEvent::Entry(entry)).is_err() {
                                 println!("Send err: channel closed");
                                 return;
@@ -82,8 +89,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
 
                         let kind = match e.file_type().is_dir() {
                             true => {
-                                // Create store record for folder (edge-case for last-leaf-empty
-                                // folders)
+                                // Create store record for folder (edge-case for last-leaf-empty folders)
                                 let default_folder = Folder::new(title.clone());
                                 store.set_folder(&e.path().clone(), default_folder);
 
@@ -220,14 +226,22 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         paths_to_process
     }
 
-    pub fn iter_from_path(root_path: &PathBuf) -> WalkDir {
+    pub fn iter_from_path(root_path: &PathBuf, walk_enabled: bool) -> WalkDir {
         let threads = num_cpus::get();
 
         let ignore_dirs = [];
 
-        WalkDir::new(root_path)
+        let walkdir = WalkDir::new(root_path)
             .follow_links(false)
-            .skip_hidden(false)
+            .skip_hidden(false);
+
+        let walkdir = if walk_enabled {
+            walkdir
+        } else {
+            walkdir.max_depth(1)
+        };
+
+        walkdir
             .process_read_dir({
                 move |_, _, _, dir_entry_results| {
                     dir_entry_results.iter_mut().for_each(|dir_entry_result| {

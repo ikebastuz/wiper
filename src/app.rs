@@ -63,6 +63,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                 move_to_trash: true,
                 open_file: true,
                 debug_enabled: false,
+                walk_enabled: true,
             },
             task_manager: TaskManager::<S>::default(),
             store: S::new(),
@@ -80,7 +81,11 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         let path_buf = self.store.get_current_path().clone();
         self.logger.log(path_buf.to_string_lossy().to_string());
 
-        self.task_manager.start(vec![path_buf], &mut self.logger);
+        self.task_manager.start(
+            vec![path_buf],
+            &mut self.logger,
+            self.ui_config.walk_enabled,
+        );
     }
 
     pub fn reset(&mut self) {
@@ -130,6 +135,10 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         self.ui_config.move_to_trash = !self.ui_config.move_to_trash;
     }
 
+    pub fn on_toggle_filetree_walking(&mut self) {
+        self.ui_config.walk_enabled = !self.ui_config.walk_enabled;
+    }
+
     pub fn on_cursor_up(&mut self) {
         if let Some(folder) = self.store.get_current_folder_mut() {
             if folder.cursor_index > 0 {
@@ -167,7 +176,11 @@ impl<S: DataStore<DataStoreKey>> App<S> {
 
         self.sort_current_folder();
 
-        self.task_manager.start(to_process, &mut self.logger);
+        self.task_manager.start(
+            to_process,
+            &mut self.logger,
+            self.ui_config.walk_enabled,
+        );
     }
 
     fn navigate_to_child(&mut self, title: &str) {
@@ -177,12 +190,47 @@ impl<S: DataStore<DataStoreKey>> App<S> {
             .log(self.store.get_current_path().to_string_lossy().to_string());
 
         match self.store.get_current_folder() {
-            Some(_) => {}
+            Some(folder) => {
+                // If a subfolder has not yet been explored it only appears to contain '..'
+                if folder.entries.len() <= 1 {
+                    self.task_manager.start(
+                        vec![self.store.get_current_path().clone()],
+                        &mut self.logger,
+                        false, // Single depth exploration
+                    );
+
+                    // Process results immediately
+                    while self.task_manager.is_working {
+                        self.task_manager
+                            .process_results(&mut self.store, &mut self.logger);
+                        std::thread::sleep(std::time::Duration::from_millis(10));
+
+                        if let Some(updated_folder) = self.store.get_current_folder() {
+                            if updated_folder.entries.len() > 1 {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
             None => {
+                // If a folder doesn't exist in the top level store, it should be explored to single depth
                 self.task_manager.start(
                     vec![self.store.get_current_path().clone()],
                     &mut self.logger,
+                    false,
                 );
+
+                // Process results immediately
+                while self.task_manager.is_working {
+                    self.task_manager
+                        .process_results(&mut self.store, &mut self.logger);
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+
+                    if self.store.get_current_folder().is_some() {
+                        break;
+                    }
+                }
             }
         }
     }
