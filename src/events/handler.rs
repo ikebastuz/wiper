@@ -52,6 +52,9 @@ pub fn handle_key_events<S: DataStore<DataStoreKey>>(
         KeyCode::Char('t') => {
             app.on_toggle_move_to_trash();
         }
+        KeyCode::Char('w') => {
+            app.on_toggle_deep_walk();
+        }
         _ => {}
     }
     Ok(())

@@ -63,6 +63,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                 move_to_trash: true,
                 open_file: true,
                 debug_enabled: false,
+                deep_walk: true,
             },
             task_manager: TaskManager::<S>::default(),
             store: S::new(),
@@ -80,7 +81,8 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         let path_buf = self.store.get_current_path().clone();
         self.logger.log(path_buf.to_string_lossy().to_string());
 
-        self.task_manager.start(vec![path_buf], &mut self.logger);
+        self.task_manager
+            .start(vec![path_buf], &mut self.logger, self.ui_config.deep_walk);
     }
 
     pub fn reset(&mut self) {
@@ -130,6 +132,10 @@ impl<S: DataStore<DataStoreKey>> App<S> {
         self.ui_config.move_to_trash = !self.ui_config.move_to_trash;
     }
 
+    pub fn on_toggle_deep_walk(&mut self) {
+        self.ui_config.deep_walk = !self.ui_config.deep_walk;
+    }
+
     pub fn on_cursor_up(&mut self) {
         if let Some(folder) = self.store.get_current_folder_mut() {
             if folder.cursor_index > 0 {
@@ -167,7 +173,8 @@ impl<S: DataStore<DataStoreKey>> App<S> {
 
         self.sort_current_folder();
 
-        self.task_manager.start(to_process, &mut self.logger);
+        self.task_manager
+            .start(to_process, &mut self.logger, self.ui_config.deep_walk);
     }
 
     fn navigate_to_child(&mut self, title: &str) {
@@ -182,6 +189,7 @@ impl<S: DataStore<DataStoreKey>> App<S> {
                 self.task_manager.start(
                     vec![self.store.get_current_path().clone()],
                     &mut self.logger,
+                    self.ui_config.deep_walk,
                 );
             }
         }
