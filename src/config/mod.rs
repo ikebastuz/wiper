@@ -22,6 +22,7 @@ pub struct UIConfig {
     pub move_to_trash: bool,
     pub open_file: bool,
     pub debug_enabled: bool,
+    pub walk_enabled: bool,
 }
 
 pub const EVENT_INTERVAL: u64 = 100;
