@@ -1,7 +1,7 @@
 use ratatui::{prelude::*, widgets::*};
-use std::path::PathBuf;
+use std::path::Path;
 
-pub fn render_path_bar(area: Rect, buf: &mut Buffer, current_path: &PathBuf) {
+pub fn render_path_bar(area: Rect, buf: &mut Buffer, current_path: &Path) {
     let full_path = current_path.to_string_lossy().to_string();
 
     // Truncate if path is too long for the display area

@@ -136,8 +136,7 @@ pub fn render_debug_panel(area: Rect, buf: &mut Buffer, logger: &Logger, debug_d
     let logs: Vec<ListItem> = logger
         .messages
         .iter()
-        .enumerate()
-        .map(|(_i, (timestamp, level, message))| {
+        .map(|(timestamp, level, message)| {
             let mut message = message.clone();
             let current_timestamp_ms = SystemTime::now()
                 .duration_since(UNIX_EPOCH)

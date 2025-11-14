@@ -32,7 +32,7 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
         let (spin_left, spin_right) = self.spinner.get_icons(!self.task_manager.is_working);
         let debug = DebugData {
             folders: self.store.get_nodes_len(),
-            fps: format!("{:.1}", fps),
+            fps: format!("{fps:.1}"),
             skipped_frames: format!("{:.1}", self.fps_counter.skipped_frames),
             spin_symbol: (spin_left, spin_right),
         };
@@ -50,7 +50,7 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
         }
 
         let block = Block::default()
-            .title(format!(" {} {} {} ", spin_left, title, spin_right))
+            .title(format!(" {spin_left} {title} {spin_right} "))
             .title_alignment(Alignment::Center)
             .borders(Borders::ALL)
             .border_style(border_color)

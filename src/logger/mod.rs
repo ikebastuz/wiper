@@ -53,7 +53,7 @@ impl Logger {
                 .duration_since(start_time)
                 .expect("Time went backwards")
                 .as_secs_f64();
-            self.log(format!("[{}]: {:.1}s", name, diff));
+            self.log(format!("[{name}]: {diff:.1}s"));
         }
     }
 }

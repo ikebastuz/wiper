@@ -19,7 +19,7 @@ pub fn setup_app_view<S: DataStore<DataStoreKey>>() -> App<S> {
 
 pub fn setup_app_edit<S: DataStore<DataStoreKey>>(postfix: &str) -> App<S> {
     let c = InitConfig {
-        file_path: Some(format!("{}_{}", TEST_FILE_PATH_EDIT, postfix)),
+        file_path: Some(format!("{TEST_FILE_PATH_EDIT}_{postfix}")),
     };
     let mut app: App<S> = App::new(c);
     app.ui_config.open_file = false;

@@ -63,7 +63,7 @@ pub fn delete_folder(path: &PathBuf, config: &UIConfig) -> std::io::Result<()> {
     if config.move_to_trash {
         match trash::delete(path) {
             Ok(_) => Ok(()),
-            Err(err) => Err(std::io::Error::new(std::io::ErrorKind::Other, err)),
+            Err(err) => Err(std::io::Error::other(err)),
         }
     } else {
         remove_dir_all(path)?;
@@ -75,7 +75,7 @@ pub fn delete_file(path: &PathBuf, config: &UIConfig) -> std::io::Result<()> {
     if config.move_to_trash {
         match trash::delete(path) {
             Ok(_) => Ok(()),
-            Err(err) => Err(std::io::Error::new(std::io::ErrorKind::Other, err)),
+            Err(err) => Err(std::io::Error::other(err)),
         }
     } else {
         remove_file(path)?;
