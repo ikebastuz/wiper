@@ -7,11 +7,13 @@ mod chart;
 pub mod constants;
 mod content;
 mod footer;
+mod path_bar;
 mod title;
 mod utils;
 use constants::TEXT_TITLE;
 pub use content::{render_content, DebugData};
 pub use footer::render_footer;
+pub use path_bar::render_path_bar;
 pub use title::render_title;
 
 use self::chart::render_chart;
@@ -20,6 +22,7 @@ use self::constants::{TEXT_COLOR, TEXT_PRE_DELETED_BG};
 impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         self.pre_render();
+        let current_path = self.store.get_current_path().clone();
         let maybe_folder = self.store.get_current_folder();
 
         let mut chart_data = vec![];
@@ -59,13 +62,16 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
         // Layout
         let vertical = Layout::vertical([
             Constraint::Length(2), // Header - 2 lines
+            Constraint::Length(1), // Path bar - 1 line
             Constraint::Fill(1),   // Content - Fill the rest of the space
             Constraint::Length(4), // Chart - 4 lines
             Constraint::Length(2), // Footer - 2 lines
         ]);
-        let [header_area, rest_area, chart_area, footer_area] = vertical.areas(inner_area);
+        let [header_area, path_area, rest_area, chart_area, footer_area] =
+            vertical.areas(inner_area);
 
         render_title(header_area, buf, maybe_folder, &self.ui_config);
+        render_path_bar(path_area, buf, &current_path);
         render_content(
             rest_area,
             buf,
