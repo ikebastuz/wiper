@@ -21,7 +21,7 @@ pub fn format_file_size(size: u64) -> String {
     } else if size >= KB {
         format!("{:.2} KB", size as f64 / KB as f64)
     } else {
-        format!("{} bytes", size)
+        format!("{size} bytes")
     }
 }
 

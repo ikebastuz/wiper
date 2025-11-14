@@ -21,7 +21,7 @@ pub fn render_footer(area: Rect, buf: &mut Buffer) {
         layout.areas(inner_area);
 
     let version = env!("CARGO_PKG_VERSION");
-    let text_version = format!("v:{}", version);
+    let text_version = format!("v:{version}");
     let text_explore = color_capital_letter("Explore,".into(), None, None);
     let text_refresh = color_capital_letter("Refresh,".into(), None, None);
     let text_sort = color_capital_letter("Sort,".into(), None, None);

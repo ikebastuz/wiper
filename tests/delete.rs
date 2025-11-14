@@ -31,29 +31,29 @@ mod delete {
     /// - file_2
     /// - file_3
     fn create_testing_files(postfix: &str) {
-        let custom_folder = format!("{}_{}", TEST_FILE_PATH_EDIT, postfix);
+        let custom_folder = format!("{TEST_FILE_PATH_EDIT}_{postfix}");
         fs::create_dir_all(&custom_folder).expect("Failed to create test folder");
 
         let mut folder_path = custom_folder.to_string();
 
         for folder_index in 1..4 {
             for file_index in 1..4 {
-                let file_name = format!("file_to_delete_{}.txt", file_index);
-                let file_path = format!("{}/{}", folder_path, file_name);
+                let file_name = format!("file_to_delete_{file_index}.txt");
+                let file_path = format!("{folder_path}/{file_name}");
                 let mut file = File::create(&file_path).expect("Failed to create test file");
                 writeln!(file, "{}", generate_lorem_ipsum()).expect("Failed to write to test file");
             }
 
-            folder_path = format!("{}/folder_to_delete_{}", folder_path, folder_index);
+            folder_path = format!("{folder_path}/folder_to_delete_{folder_index}");
 
             fs::create_dir_all(&folder_path).expect("Failed to create test folder");
         }
     }
 
     fn cleanup_testing_files(postfix: &str) {
-        let custom_folder = format!("{}_{}", TEST_FILE_PATH_EDIT, postfix);
+        let custom_folder = format!("{TEST_FILE_PATH_EDIT}_{postfix}");
         if let Err(err) = fs::remove_dir_all(custom_folder) {
-            eprintln!("Failed to remove test folder: {}", err);
+            eprintln!("Failed to remove test folder: {err}");
         }
     }
 
