@@ -62,18 +62,4 @@ impl FolderEntry {
             None => self.size = Some(addition),
         }
     }
-
-    pub fn sort_by_size(entries: &mut [FolderEntry]) {
-        entries.sort_by(|a, b| {
-            if let (Some(size_a), Some(size_b)) = (a.size, b.size) {
-                size_a.cmp(&size_b)
-            } else if a.size.is_some() {
-                Ordering::Less
-            } else if b.size.is_some() {
-                Ordering::Greater
-            } else {
-                Ordering::Equal
-            }
-        });
-    }
 }

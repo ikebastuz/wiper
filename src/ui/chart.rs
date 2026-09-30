@@ -8,6 +8,9 @@ pub fn render_chart(area: Rect, buf: &mut Buffer, chart_data: Vec<(String, u64)>
     Widget::render(block, area, buf);
 
     let total_size: u64 = chart_data.iter().map(|(_, size)| *size).sum();
+    if total_size == 0 {
+        return;
+    }
     let percentages: Vec<u16> = chart_data
         .iter()
         .map(|(_, size)| (size * 100 / total_size) as u16)

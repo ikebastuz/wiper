@@ -1,11 +1,7 @@
 use crate::app::{App, AppResult};
-use crate::fs::{DataStore, DataStoreKey};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-pub fn handle_key_events<S: DataStore<DataStoreKey>>(
-    key_event: KeyEvent,
-    app: &mut App<S>,
-) -> AppResult<()> {
+pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     match key_event.code {
         KeyCode::Esc => {
             app.on_escape();

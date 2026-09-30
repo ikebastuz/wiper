@@ -52,16 +52,14 @@ pub fn folder_to_rows<'a>(folder: &'a Folder, config: &'a UIConfig) -> Vec<Row<'
     let max_entry_size = folder.get_max_entry_size();
 
     folder
-        .to_list()
+        .entries()
         .iter()
         .map(|item| {
             let (item_size, bar, color) = match item.size {
                 Some(size) => {
-                    let percent = if max_entry_size == 0 {
-                        0
-                    } else {
-                        (size * TABLE_SPACE_WIDTH as u64 / max_entry_size).div_euclid(1)
-                    };
+                    let percent = (size * TABLE_SPACE_WIDTH as u64)
+                        .checked_div(max_entry_size)
+                        .unwrap_or(0);
                     let mut b = String::new();
                     let color = calculate_color(percent, max_entry_size);
                     for _ in 0..percent {

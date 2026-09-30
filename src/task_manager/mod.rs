@@ -1,9 +1,11 @@
-use crate::fs::{path_to_folder, DataStore, DataStoreKey, Folder, FolderEntry, FolderEntryType};
+use crate::fs::{
+    path_to_folder, propagate_folder_change, DataStore, DataStoreType, Folder, FolderEntry,
+    FolderEntryType,
+};
 use crate::logger::Logger;
 use crossbeam::channel::{Receiver, Sender};
 use std::ffi::OsStr;
-use std::marker::PhantomData;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 pub struct EntryState {
@@ -18,25 +20,26 @@ pub type TraversalEntry =
 #[derive(Debug)]
 pub enum TraversalEvent {
     Entry(TraversalEntry),
+    /// A single-level directory listing for a path the user just navigated
+    /// to, produced off the UI thread by `start_parent_scan`.
+    ParentScan(PathBuf, Folder),
     Finished(u64),
 }
 
 #[derive(Debug)]
-pub struct TaskManager<S: DataStore<DataStoreKey>> {
+pub struct TaskManager {
     pub event_tx: Sender<TraversalEvent>,
     pub event_rx: Receiver<TraversalEvent>,
     pub is_working: bool,
-    _store: PhantomData<S>,
 }
 
-impl<S: DataStore<DataStoreKey>> TaskManager<S> {
+impl TaskManager {
     pub fn new() -> Self {
         let (entry_tx, entry_rx) = crossbeam::channel::bounded(100);
         Self {
             event_rx: entry_rx,
             event_tx: entry_tx,
             is_working: false,
-            _store: PhantomData,
         }
     }
 
@@ -44,7 +47,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         !self.is_working
     }
 
-    pub fn start(&mut self, input: Vec<DataStoreKey>, logger: &mut Logger) {
+    pub fn start(&mut self, input: Vec<PathBuf>, logger: &mut Logger) {
         logger.start_timer("Traversal");
         self.is_working = true;
         let entry_tx = self.event_tx.clone();
@@ -65,109 +68,28 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
             });
     }
 
-    pub fn process_results(&mut self, store: &mut S, logger: &mut Logger) {
+    /// Lists `path` off the UI thread and reports back via `ParentScan`,
+    /// instead of blocking the caller with a synchronous `read_dir`.
+    pub fn start_parent_scan(&mut self, path: PathBuf, logger: &mut Logger) {
+        logger.start_timer("Traversal");
+        self.is_working = true;
+        let entry_tx = self.event_tx.clone();
+        let _ = std::thread::Builder::new()
+            .name("wiper-parent-scan".to_string())
+            .spawn(move || {
+                let folder = path_to_folder(path.clone());
+                let _ = entry_tx.send(TraversalEvent::ParentScan(path, folder));
+            });
+    }
+
+    pub fn process_results(&mut self, store: &mut DataStoreType, logger: &mut Logger) {
         while let Ok(event) = self.event_rx.try_recv() {
             match event {
-                TraversalEvent::Entry(entry) => match entry {
-                    Ok(e) => {
-                        // Construct entry
-                        let belongs_to = e.parent_path.to_path_buf();
-                        let title = e.file_name.to_string_lossy().to_string();
-                        let extension = e
-                            .path()
-                            .extension()
-                            .and_then(OsStr::to_str)
-                            .unwrap_or("")
-                            .to_string();
-
-                        let kind = match e.file_type().is_dir() {
-                            true => {
-                                // Create store record for folder (edge-case for last-leaf-empty
-                                // folders)
-                                let default_folder = Folder::new(title.clone());
-                                store.set_folder(&e.path().clone(), default_folder);
-
-                                FolderEntryType::Folder
-                            }
-                            false => FolderEntryType::File,
-                        };
-                        let size = match e.client_state.as_ref() {
-                            Some(Ok(my_entry)) => {
-                                if kind == FolderEntryType::Folder {
-                                    // Ignore folder metadata size
-                                    0
-                                } else {
-                                    my_entry.size
-                                }
-                            }
-                            _ => 0,
-                        };
-
-                        let folder_entry = FolderEntry {
-                            title: title.clone(),
-                            size: Some(size),
-                            is_loaded: true,
-                            kind,
-                        };
-
-                        // Add entry to parent folder
-                        let parent_folder = store.get_folder_mut(&belongs_to.to_path_buf());
-                        match parent_folder {
-                            Some(folder) => {
-                                if !extension.is_empty() {
-                                    folder.append_file_type_size(&extension, size);
-                                }
-                                folder.entries.push(folder_entry);
-                            }
-                            None => {
-                                if let Some(belongs_to_name) = belongs_to.file_name() {
-                                    let mut folder =
-                                        Folder::new(belongs_to_name.to_string_lossy().to_string());
-                                    folder.entries.push(folder_entry);
-                                    store.set_folder(&belongs_to.to_path_buf(), folder);
-                                }
-                            }
-                        };
-
-                        // Traverse tree up - update parent folder sizes
-                        if let Some(title_traverse_os) = belongs_to.file_name() {
-                            let mut title_traverse =
-                                title_traverse_os.to_string_lossy().to_string();
-                            let mut path_traverse = belongs_to.to_path_buf();
-
-                            while let Some(parent_buf) = path_traverse.parent() {
-                                if parent_buf == path_traverse {
-                                    break;
-                                }
-                                if let Some(parent_folder) =
-                                    store.get_folder_mut(&PathBuf::from(parent_buf))
-                                {
-                                    // Increment parent's entry size
-                                    for child in parent_folder.entries.iter_mut() {
-                                        if child.title == title_traverse
-                                            && child.kind == FolderEntryType::Folder
-                                        {
-                                            child.increment_size(size);
-                                            parent_folder.sorted_by = None;
-                                            break;
-                                        }
-                                    }
-                                    // Update parent's folder file_type_map
-                                    if !extension.is_empty() {
-                                        parent_folder.append_file_type_size(&extension, size);
-                                    }
-                                    title_traverse.clone_from(&parent_folder.title);
-                                    path_traverse = parent_buf.to_path_buf();
-                                } else {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    Err(_) => {
-                        logger.log("Done".into());
-                    }
-                },
+                TraversalEvent::Entry(entry) => Self::process_entry(store, entry, logger),
+                TraversalEvent::ParentScan(path, folder_new) => {
+                    let to_process = Self::merge_parent_scan(store, &path, folder_new);
+                    self.start(to_process, logger);
+                }
                 TraversalEvent::Finished(_) => {
                     self.is_working = false;
                     logger.stop_timer("Traversal");
@@ -176,44 +98,133 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
         }
     }
 
-    pub fn process_path_sync(&self, store: &mut S, path: &DataStoreKey) -> Vec<DataStoreKey> {
-        let mut folder_new = path_to_folder(path.clone());
-        let mut paths_to_process: Vec<DataStoreKey> = vec![];
-        let mut entries_to_keep: Vec<FolderEntry> = vec![];
+    fn process_entry(store: &mut DataStoreType, entry: TraversalEntry, logger: &mut Logger) {
+        match entry {
+            Ok(e) => {
+                // Construct entry
+                let belongs_to = e.parent_path.to_path_buf();
+                let title = e.file_name.to_string_lossy().to_string();
+                let extension = e
+                    .path()
+                    .extension()
+                    .and_then(OsStr::to_str)
+                    .unwrap_or("")
+                    .to_string();
+
+                let kind = match e.file_type().is_dir() {
+                    true => {
+                        // Create store record for folder (edge-case for last-leaf-empty
+                        // folders)
+                        let default_folder = Folder::new(title.clone());
+                        store.set_folder(&e.path(), default_folder);
+
+                        FolderEntryType::Folder
+                    }
+                    false => FolderEntryType::File,
+                };
+                let size = match e.client_state.as_ref() {
+                    Some(Ok(my_entry)) => {
+                        if kind == FolderEntryType::Folder {
+                            // Ignore folder metadata size
+                            0
+                        } else {
+                            my_entry.size
+                        }
+                    }
+                    _ => 0,
+                };
+
+                let folder_entry = FolderEntry {
+                    title: title.clone(),
+                    size: Some(size),
+                    is_loaded: true,
+                    kind,
+                };
+
+                // Add entry to parent folder
+                match store.get_folder_mut(&belongs_to) {
+                    Some(folder) => {
+                        if !extension.is_empty() {
+                            folder.append_file_type_size(&extension, size);
+                        }
+                        folder.push_entry(folder_entry);
+                    }
+                    None => {
+                        if let Some(belongs_to_name) = belongs_to.file_name() {
+                            let mut folder =
+                                Folder::new(belongs_to_name.to_string_lossy().to_string());
+                            folder.push_entry(folder_entry);
+                            store.set_folder(&belongs_to, folder);
+                        }
+                    }
+                };
+
+                // Traverse tree up - update parent folder sizes
+                if let Some(title_traverse_os) = belongs_to.file_name() {
+                    let title_traverse = title_traverse_os.to_string_lossy().to_string();
+
+                    propagate_folder_change(store, &belongs_to, &title_traverse, |entry| {
+                        entry.increment_size(size);
+                    });
+
+                    // Update parent's folder file_type_map too, following the
+                    // same ancestor chain.
+                    if !extension.is_empty() {
+                        let mut path_traverse = belongs_to.to_path_buf();
+                        while let Some(parent) = path_traverse.parent() {
+                            let parent_buf = parent.to_path_buf();
+                            let Some(parent_folder) = store.get_folder_mut(&parent_buf) else {
+                                break;
+                            };
+                            parent_folder.append_file_type_size(&extension, size);
+                            path_traverse = parent_buf;
+                        }
+                    }
+                }
+            }
+            Err(_) => {
+                logger.log("Done".into());
+            }
+        }
+    }
+
+    /// Diffs a freshly-listed directory against what the store already
+    /// knows about `path`, merging in any newly-discovered files directly
+    /// and returning the subfolders that still need a recursive scan.
+    fn merge_parent_scan(store: &mut DataStoreType, path: &Path, folder_new: Folder) -> Vec<PathBuf> {
+        let mut paths_to_process: Vec<PathBuf> = vec![];
 
         match store.get_folder_mut(path) {
             Some(folder_stored) => {
                 // Folder already exists
-                for child in folder_new.entries.iter_mut() {
-                    if !folder_stored.entries.iter().any(|e| e.title == child.title) {
+                for child in folder_new.entries() {
+                    if !folder_stored.has_entry_titled(&child.title) {
                         // No entry
                         if child.kind == FolderEntryType::Folder {
                             // Folder -> process
-                            let mut child_path = path.clone();
-                            child_path.push(child.title.clone());
-                            paths_to_process.push(child_path);
+                            paths_to_process.push(path.join(&child.title));
                         } else {
                             // File -> simply push
-                            folder_stored.entries.push(child.clone());
+                            folder_stored.push_entry(child.clone());
                         }
                     }
                 }
             }
             None => {
                 // Folder does not exist
-                for child in folder_new.entries.iter_mut() {
+                let mut folder_new = folder_new;
+                let mut entries_to_keep: Vec<FolderEntry> = vec![];
+                for child in folder_new.entries() {
                     if child.kind == FolderEntryType::Folder {
                         // Folder -> process
-                        let mut child_path = path.clone();
-                        child_path.push(child.title.clone());
-                        paths_to_process.push(child_path);
+                        paths_to_process.push(path.join(&child.title));
                     } else {
                         // File -> simply push
                         entries_to_keep.push(child.clone());
                     }
                 }
-                folder_new.entries = entries_to_keep;
-                store.set_folder(path, folder_new.clone());
+                folder_new.set_entries(entries_to_keep);
+                store.set_folder(path, folder_new);
             }
         }
 
@@ -268,7 +279,7 @@ impl<S: DataStore<DataStoreKey>> TaskManager<S> {
     }
 }
 
-impl<S: DataStore<DataStoreKey>> Default for TaskManager<S> {
+impl Default for TaskManager {
     fn default() -> Self {
         Self::new()
     }

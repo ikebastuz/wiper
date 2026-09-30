@@ -34,13 +34,10 @@ impl EventHandler {
         thread::spawn(move || {
             let mut last_tick = Instant::now();
             loop {
-                if last_tick.elapsed() >= tick_rate {
-                    if sender_clone.send(Event::Tick).is_err() {
-                        break; // Exit if the receiver has dropped
-                    }
-                    last_tick = Instant::now();
-                }
-                if crossterm::event::poll(Duration::from_millis(1)).unwrap() {
+                // Block on input for whatever's left of this tick, instead
+                // of a short poll plus an extra fixed sleep every loop.
+                let timeout = tick_rate.saturating_sub(last_tick.elapsed());
+                if let Ok(true) = crossterm::event::poll(timeout) {
                     if let Ok(crossterm_event) = crossterm::event::read() {
                         match crossterm_event {
                             CrosstermEvent::Key(key) => {
@@ -56,7 +53,13 @@ impl EventHandler {
                         }
                     }
                 }
-                thread::sleep(Duration::from_millis(10));
+
+                if last_tick.elapsed() >= tick_rate {
+                    if sender_clone.send(Event::Tick).is_err() {
+                        break; // Exit if the receiver has dropped
+                    }
+                    last_tick = Instant::now();
+                }
             }
         });
 

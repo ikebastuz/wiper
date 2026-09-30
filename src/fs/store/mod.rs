@@ -2,19 +2,16 @@ mod ds_hashmap;
 pub use ds_hashmap::DSHashmap;
 
 use crate::fs::{Folder, SortBy};
-use std::path::PathBuf;
+use std::path::Path;
 
-pub trait DataStore<T> {
+pub trait DataStore {
     fn new() -> Self;
 
     /// Get current active path
-    fn get_current_path(&mut self) -> &T;
+    fn get_current_path(&self) -> &Path;
 
     /// Set current active path
-    fn set_current_path(&mut self, path: &T);
-
-    /// Check if store has provided path entry
-    fn has_path(&self, path: &T) -> bool;
+    fn set_current_path(&mut self, path: &Path);
 
     /// Get optional current active Folder
     fn get_current_folder(&self) -> Option<&Folder>;
@@ -23,10 +20,10 @@ pub trait DataStore<T> {
     fn get_current_folder_mut(&mut self) -> Option<&mut Folder>;
 
     /// Get optional mutable Folder for provided path
-    fn get_folder_mut(&mut self, path: &T) -> Option<&mut Folder>;
+    fn get_folder_mut(&mut self, path: &Path) -> Option<&mut Folder>;
 
     /// Update folder for provided path
-    fn set_folder(&mut self, path: &T, folder: Folder);
+    fn set_folder(&mut self, path: &Path, folder: Folder);
 
     /// Update current active folder
     fn set_current_folder(&mut self, folder: Folder);
@@ -41,16 +38,10 @@ pub trait DataStore<T> {
     fn move_to_child(&mut self, title: &str);
 
     /// Remove provided path record from store
-    fn remove_path(&mut self, path: &T);
-
-    /// Get total known size for provided path
-    fn get_entry_size(&mut self, path: &T) -> Option<u64>;
+    fn remove_path(&mut self, path: &Path);
 
     /// Get amount of processed file paths
     fn get_nodes_len(&self) -> usize;
-
-    fn get_keys(&mut self) -> Vec<T>;
 }
 
-pub type DataStoreKey = PathBuf;
 pub type DataStoreType = DSHashmap;

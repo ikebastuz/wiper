@@ -6,12 +6,12 @@ use wiper::fs::FolderEntryType;
 
 mod file_tree {
 
-    use wiper::fs::{DataStore, DataStoreType};
+    use wiper::fs::DataStore;
 
     use super::*;
     #[test]
     fn test_ordering_by_kind() {
-        let mut app: App<DataStoreType> = setup_app_view();
+        let mut app: App = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
         assert_item_at_index_is(&app, 0, FolderEntryType::Parent);
@@ -25,7 +25,7 @@ mod file_tree {
 
     #[test]
     fn test_ordering_by_title() {
-        let mut app: App<DataStoreType> = setup_app_view();
+        let mut app: App = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
         assert_root_view_folder_sorted_by_title(&app);
@@ -33,7 +33,7 @@ mod file_tree {
 
     #[test]
     fn test_switching_ordering_to_size() {
-        let mut app: App<DataStoreType> = setup_app_view();
+        let mut app: App = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
         app.on_toggle_sorting();
@@ -44,7 +44,7 @@ mod file_tree {
 
     #[test]
     fn test_ordering_persists_after_navigating_into_folder() {
-        let mut app: App<DataStoreType> = setup_app_view();
+        let mut app: App = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
         app.on_toggle_sorting();
@@ -62,7 +62,7 @@ mod file_tree {
 
     #[test]
     fn test_ordering_persists_after_navigating_to_parent() {
-        let mut app: App<DataStoreType> = setup_app_view();
+        let mut app: App = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
         app.on_cursor_down();
@@ -78,7 +78,7 @@ mod file_tree {
 
     #[test]
     fn test_switching_ordering_back_to_title() {
-        let mut app: App<DataStoreType> = setup_app_view();
+        let mut app: App = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
         app.on_toggle_sorting();
@@ -90,7 +90,7 @@ mod file_tree {
 
     #[test]
     fn has_correct_amount_file_tree_keys() {
-        let mut app: App<DataStoreType> = setup_app_view();
+        let mut app: App = setup_app_view();
         handle_tasks_synchronously(&mut app);
 
         assert_eq!(app.store.get_nodes_len(), 5);

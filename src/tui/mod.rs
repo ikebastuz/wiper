@@ -1,12 +1,10 @@
 use crate::app::{App, AppResult};
 use crate::events::EventHandler;
-use crate::fs::{DataStore, DataStoreKey};
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::backend::Backend;
 use ratatui::Terminal;
 use std::io;
-use std::marker::PhantomData;
 use std::panic;
 
 /// Representation of a terminal user interface.
@@ -14,22 +12,17 @@ use std::panic;
 /// It is responsible for setting up the terminal,
 /// initializing the interface and handling the draw events.
 #[derive(Debug)]
-pub struct Tui<B: Backend, S: DataStore<DataStoreKey>> {
+pub struct Tui<B: Backend> {
     /// Interface to the Terminal.
     terminal: Terminal<B>,
     /// Terminal event handler.
     pub events: EventHandler,
-    _store: PhantomData<S>,
 }
 
-impl<B: Backend, S: DataStore<DataStoreKey>> Tui<B, S> {
+impl<B: Backend> Tui<B> {
     /// Constructs a new instance of [`Tui`].
     pub fn new(terminal: Terminal<B>, events: EventHandler) -> Self {
-        Self {
-            terminal,
-            events,
-            _store: PhantomData,
-        }
+        Self { terminal, events }
     }
 
     /// Initializes the terminal interface.
@@ -56,7 +49,7 @@ impl<B: Backend, S: DataStore<DataStoreKey>> Tui<B, S> {
     ///
     /// [`Draw`]: ratatui::Terminal::draw
     /// [`rendering`]: crate::ui::render
-    pub fn draw(&mut self, app: &mut App<S>) -> AppResult<()> {
+    pub fn draw(&mut self, app: &mut App) -> AppResult<()> {
         self.terminal
             .draw(|frame| frame.render_widget(app, frame.size()))?;
         Ok(())

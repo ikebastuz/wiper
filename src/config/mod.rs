@@ -5,12 +5,12 @@ pub struct InitConfig {
 }
 
 impl InitConfig {
-    pub fn build(mut args: impl Iterator<Item = String>) -> Result<InitConfig, &'static str> {
+    pub fn build(mut args: impl Iterator<Item = String>) -> InitConfig {
         args.next();
 
-        Ok(InitConfig {
+        InitConfig {
             file_path: args.next(),
-        })
+        }
     }
 }
 

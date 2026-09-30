@@ -1,7 +1,7 @@
 use crate::config::UIConfig;
 use crate::ui::constants::TEXT_UNKNOWN;
 use std::fs::{read_dir, remove_dir_all, remove_file};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use trash;
 
 mod folder;
@@ -9,7 +9,7 @@ mod folder_entry;
 mod store;
 pub use folder::Folder;
 pub use folder_entry::{FolderEntry, FolderEntryType};
-pub use store::{DSHashmap, DataStore, DataStoreKey, DataStoreType};
+pub use store::{DSHashmap, DataStore, DataStoreType};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SortBy {
@@ -47,7 +47,7 @@ pub fn path_to_folder(path: PathBuf) -> Folder {
                             }
                         }
                     }
-                    folder.entries.push(folder_entry);
+                    folder.push_entry(folder_entry);
                 }
             }
         }
@@ -57,6 +57,40 @@ pub fn path_to_folder(path: PathBuf) -> Folder {
     }
 
     folder
+}
+
+/// Walks from `start_path`'s own containing folder up through every
+/// ancestor, applying `apply` to whichever ancestor entry represents the
+/// folder that was just left. The entry is found by matching on title
+/// (never by cursor position, which reflects UI navigation state, not
+/// identity), so this stays correct regardless of where the cursor happens
+/// to be sitting in each ancestor. Mirrors how sizes are accumulated
+/// upwards while scanning.
+pub fn propagate_folder_change<S: DataStore>(
+    store: &mut S,
+    start_path: &Path,
+    start_title: &str,
+    mut apply: impl FnMut(&mut FolderEntry),
+) {
+    let mut child_title = start_title.to_string();
+    let mut path_traverse = start_path.to_path_buf();
+
+    while let Some(parent) = path_traverse.parent() {
+        let parent_buf = parent.to_path_buf();
+        let Some(parent_folder) = store.get_folder_mut(&parent_buf) else {
+            break;
+        };
+
+        if let Some(entry) = parent_folder.entry_mut_by_title(&child_title) {
+            if entry.kind == FolderEntryType::Folder {
+                apply(entry);
+                parent_folder.sorted_by = None;
+            }
+        }
+
+        child_title = parent_folder.title.clone();
+        path_traverse = parent_buf;
+    }
 }
 
 pub fn delete_folder(path: &PathBuf, config: &UIConfig) -> std::io::Result<()> {

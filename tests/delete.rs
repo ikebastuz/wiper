@@ -5,7 +5,7 @@ use wiper::fs::FolderEntryType;
 
 mod delete {
 
-    use wiper::fs::DataStoreType;
+    use wiper::fs::DataStore;
 
     use super::*;
     use std::fs::{self, File};
@@ -61,7 +61,7 @@ mod delete {
     fn has_correct_initial_state() {
         let postfix = "01";
         create_testing_files(postfix);
-        let mut app: App<DataStoreType> = setup_app_edit(postfix);
+        let mut app: App = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         assert_delete_folder_state(&app);
@@ -72,7 +72,7 @@ mod delete {
     fn does_nothing_when_cursor_is_at_the_top() {
         let postfix = "02";
         create_testing_files(postfix);
-        let mut app: App<DataStoreType> = setup_app_edit(postfix);
+        let mut app: App = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         assert_cursor_index(&app, 0);
@@ -89,7 +89,7 @@ mod delete {
     fn does_nothing_when_delete_pressed_once() {
         let postfix = "03";
         create_testing_files(postfix);
-        let mut app: App<DataStoreType> = setup_app_edit(postfix);
+        let mut app: App = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         assert_delete_folder_state(&app);
@@ -106,7 +106,7 @@ mod delete {
     fn resets_delete_confirmation_on_cursor_move() {
         let postfix = "04";
         create_testing_files(postfix);
-        let mut app: App<DataStoreType> = setup_app_edit(postfix);
+        let mut app: App = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         app.on_delete();
@@ -122,7 +122,7 @@ mod delete {
     fn resets_delete_confirmation_on_folder_enter() {
         let postfix = "05";
         create_testing_files(postfix);
-        let mut app: App<DataStoreType> = setup_app_edit(postfix);
+        let mut app: App = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         app.on_cursor_down();
@@ -136,7 +136,7 @@ mod delete {
     fn resets_delete_confirmation_after_deleting_folder() {
         let postfix = "06";
         create_testing_files(postfix);
-        let mut app: App<DataStoreType> = setup_app_edit(postfix);
+        let mut app: App = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         app.on_cursor_down();
@@ -150,7 +150,7 @@ mod delete {
     fn resets_delete_confirmation_after_deleting_file() {
         let postfix = "07";
         create_testing_files(postfix);
-        let mut app: App<DataStoreType> = setup_app_edit(postfix);
+        let mut app: App = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         app.on_cursor_down();
@@ -165,7 +165,7 @@ mod delete {
     fn resets_delete_after_clicking_escape() {
         let postfix = "14";
         create_testing_files(postfix);
-        let mut app: App<DataStoreType> = setup_app_edit(postfix);
+        let mut app: App = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         app.on_cursor_down();
@@ -179,7 +179,7 @@ mod delete {
     fn deletes_folder() {
         let postfix = "08";
         create_testing_files(postfix);
-        let mut app: App<DataStoreType> = setup_app_edit(postfix);
+        let mut app: App = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         assert_delete_folder_state(&app);
@@ -197,7 +197,7 @@ mod delete {
     fn deletes_file() {
         let postfix = "09";
         create_testing_files(postfix);
-        let mut app: App<DataStoreType> = setup_app_edit(postfix);
+        let mut app: App = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
         assert_delete_folder_state(&app);
         app.on_cursor_down();
@@ -215,7 +215,7 @@ mod delete {
     fn updated_current_folder_size() {
         let postfix = "10";
         create_testing_files(postfix);
-        let mut app: App<DataStoreType> = setup_app_edit(postfix);
+        let mut app: App = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         let root_entry = get_current_folder(&app).unwrap();
@@ -237,7 +237,7 @@ mod delete {
     fn deleting_file_updates_parent_folders_sizes() {
         let postfix = "11";
         create_testing_files(postfix);
-        let mut app: App<DataStoreType> = setup_app_edit(postfix);
+        let mut app: App = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         let root_entry = get_current_folder(&app).unwrap();
@@ -296,7 +296,7 @@ mod delete {
     fn deleting_folder_updates_parent_folders_sizes() {
         let postfix = "12";
         create_testing_files(postfix);
-        let mut app: App<DataStoreType> = setup_app_edit(postfix);
+        let mut app: App = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         let root_entry = get_current_folder(&app).unwrap();
@@ -335,7 +335,7 @@ mod delete {
     fn moves_cursor_one_step_up_after_deleting_bottom_entry() {
         let postfix = "13";
         create_testing_files(postfix);
-        let mut app: App<DataStoreType> = setup_app_edit(postfix);
+        let mut app: App = setup_app_edit(postfix);
         handle_tasks_synchronously(&mut app);
 
         for _ in 1..20 {
@@ -347,6 +347,68 @@ mod delete {
         app.on_delete();
         handle_tasks_synchronously(&mut app);
         assert_eq!(get_current_folder(&app).unwrap().cursor_index, 3);
+
+        cleanup_testing_files(postfix);
+    }
+
+    /// Ancestor folder sizes must be updated by matching the deleted entry's
+    /// title, not by whatever the ancestor's cursor happens to be sitting on.
+    /// This simulates cursor drift (e.g. from browsing around at the root
+    /// before diving back in) to prove the update targets the right entry.
+    #[test]
+    fn deleting_folder_updates_ancestor_sizes_regardless_of_ancestor_cursor_position() {
+        let postfix = "15";
+        create_testing_files(postfix);
+        let mut app: App = setup_app_edit(postfix);
+        handle_tasks_synchronously(&mut app);
+
+        let root_path = app.store.get_current_path().to_path_buf();
+        let root_entry = get_current_folder(&app).unwrap();
+        assert_eq!(root_entry.get_size(), (TEST_FILE_SIZE * 9) as u64);
+
+        app.on_cursor_down();
+        app.on_enter();
+        handle_tasks_synchronously(&mut app);
+
+        let folder_1 = get_current_folder(&app).unwrap();
+        assert_eq!(folder_1.get_size(), (TEST_FILE_SIZE * 6) as u64);
+
+        app.on_cursor_down();
+        app.on_enter();
+        handle_tasks_synchronously(&mut app);
+
+        // Simulate the root's cursor having drifted away from
+        // "folder_to_delete_1" since it was last visited.
+        if let Some(root_folder) = app.store.get_folder_mut(&root_path) {
+            root_folder.cursor_index = 0;
+        }
+
+        app.on_cursor_down();
+        app.on_cursor_down();
+        app.on_delete();
+        app.on_delete();
+        handle_tasks_synchronously(&mut app);
+
+        let folder_2_upd = get_current_folder(&app).unwrap();
+        assert_eq!(folder_2_upd.get_size(), (TEST_FILE_SIZE * 2) as u64);
+
+        app.on_cursor_up();
+        app.on_cursor_up();
+        app.on_enter();
+        handle_tasks_synchronously(&mut app);
+
+        let folder_1_upd = get_current_folder(&app).unwrap();
+        assert_eq!(folder_1_upd.get_size(), (TEST_FILE_SIZE * 5) as u64);
+
+        app.on_cursor_up();
+        app.on_enter();
+        handle_tasks_synchronously(&mut app);
+
+        // Note: root's *own* selected-entry size isn't checked here, since
+        // this test deliberately corrupted root's cursor_index above; that
+        // corruption is exactly what proves the fix doesn't rely on it.
+        let root_entry_upd = get_current_folder(&app).unwrap();
+        assert_eq!(root_entry_upd.get_size(), (TEST_FILE_SIZE * 8) as u64);
 
         cleanup_testing_files(postfix);
     }

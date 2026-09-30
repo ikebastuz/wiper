@@ -1,5 +1,5 @@
+use crate::app::App;
 use crate::fs::DataStore;
-use crate::{app::App, fs::DataStoreKey};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
@@ -19,10 +19,10 @@ pub use title::render_title;
 use self::chart::render_chart;
 use self::constants::{TEXT_COLOR, TEXT_PRE_DELETED_BG};
 
-impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
+impl Widget for &mut App {
     fn render(self, area: Rect, buf: &mut Buffer) {
         self.pre_render();
-        let current_path = self.store.get_current_path().clone();
+        let current_path = self.store.get_current_path();
         let maybe_folder = self.store.get_current_folder();
 
         let mut chart_data = vec![];
@@ -71,7 +71,7 @@ impl<S: DataStore<DataStoreKey>> Widget for &mut App<S> {
             vertical.areas(inner_area);
 
         render_title(header_area, buf, maybe_folder, &self.ui_config);
-        render_path_bar(path_area, buf, &current_path);
+        render_path_bar(path_area, buf, current_path);
         render_content(
             rest_area,
             buf,
